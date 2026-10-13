@@ -508,14 +508,32 @@ apply_child_layer_patch() {
     return 0
   fi
   git cherry-pick --quit >/dev/null 2>&1 || true
+  cherry_ok=true
   if ! git cherry-pick --no-commit --empty=keep "${old_parent}..${tree_ref}"; then
-    if ! resolve_jest_test_conflicts; then
-      die "cherry-pick of ${tree_ref} onto ${parent_ref} conflicted"
+    cherry_ok=false
+  fi
+  # Pack files belong to ROOT. Restore them so a child docs tweak cannot
+  # conflict on the vendored skill or workflows.
+  git checkout "$parent_ref" -- \
+    .github/workflows \
+    .github/scripts \
+    .cursor/skills/rafaelgaspar-fork \
+    .claude/skills \
+    2>/dev/null || true
+  git add -A -- \
+    .github/workflows \
+    .github/scripts \
+    .cursor/skills/rafaelgaspar-fork \
+    .claude/skills \
+    2>/dev/null || true
+  if ! $cherry_ok; then
+    if git diff --name-only --diff-filter=U | grep -q .; then
+      if ! resolve_jest_test_conflicts; then
+        die "cherry-pick of ${tree_ref} onto ${parent_ref} conflicted"
+      fi
     fi
     git cherry-pick --quit >/dev/null 2>&1 || true
   fi
-  git checkout "$parent_ref" -- .github/workflows .github/scripts/rebuild-rafaelgaspar.sh 2>/dev/null \
-    || git checkout "$parent_ref" -- .github/scripts/rebuild-rafaelgaspar.sh 2>/dev/null || true
   git add -A
 }
 
