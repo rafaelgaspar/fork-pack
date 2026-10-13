@@ -9,22 +9,27 @@ Shared GitOps files for the public `rafaelgaspar/*` application forks
 This repo is the source of truth for stack rebuild and tag-bump. Per-fork
 publish workflows (GHCR vs overlay `.deb` vs HTML5 tarball) stay in the forks.
 
+This repo has no `.github/` or `.cursor/` so GitHub Actions and Cursor project
+skills never activate here. Canonical copies live in `dot-github/` and
+`dot-cursor/`; `scripts/install.sh` vendors them onto forks as the live names.
+
 ## Layout
 
 | Path | Role |
 |---|---|
 | `scripts/rebuild-rafaelgaspar.sh` | Rebuild linear `feat/*` on an upstream tag; point `rafaelgaspar` at the tip |
 | `scripts/resolve-integration-tag.sh` | Pick `v{base}-rafaelgaspar.{N}` for a release |
-| `.github/workflows/rafaelgaspar-tag-bump.yaml` | Reusable workflow the forks call |
-| `.cursor/skills/rafaelgaspar-fork/` | Shared agent skill for fork workflow |
+| `dot-github/workflows/rafaelgaspar-tag-bump.yaml` | Reusable tag-bump (vendored onto forks; GitHub will not `uses:` this path) |
+| `dot-cursor/skills/rafaelgaspar-fork/` | Shared agent skill for fork workflow |
 | `examples/rafaelgaspar-tag-bump.yaml` | Thin per-fork caller (cron + inputs) |
 | `members.yaml` | Fork list, upstream remotes, tag filters |
 
 ## Consume from a fork
 
-Tag-bump checks out this repo and runs its scripts (no vendored copy required
-at runtime). After a successful rebuild, the ROOT layer is updated from pack
-scripts so a local checkout still has them.
+GitHub reusable workflows must live under `.github/workflows`, so each fork
+gets a local copy of the pack reusable (`rafaelgaspar-tag-bump-reusable.yaml`)
+and a thin caller that `uses:` that file. Tag-bump still checkouts this repo
+for the rebuild scripts.
 
 ```yaml
 # .github/workflows/rafaelgaspar-tag-bump.yaml
@@ -42,7 +47,7 @@ on:
         default: false
 jobs:
   bump:
-    uses: rafaelgaspar/fork-pack/.github/workflows/rafaelgaspar-tag-bump.yaml@main
+    uses: ./.github/workflows/rafaelgaspar-tag-bump-reusable.yaml
     with:
       upstream_url: https://github.com/gethomepage/homepage.git
       tag_glob: 'v*.*.*'
@@ -74,7 +79,7 @@ FORK_PACK_SCRIPTS=~/Projects/ThirdParty/fork-pack/scripts \
   ~/Projects/ThirdParty/fork-pack/scripts/rebuild-rafaelgaspar.sh --squash --push vX.Y.Z
 ```
 
-Or vendor the scripts into `.github/scripts/`:
+Or vendor scripts, reusable tag-bump, and the skill into the fork:
 
 ```sh
 ~/Projects/ThirdParty/fork-pack/scripts/install.sh /path/to/fork

@@ -1,3 +1,6 @@
+# Canonical copy lives in fork-pack as dot-github/workflows/rafaelgaspar-tag-bump.yaml
+# so Actions does not run on the pack repo. install.sh vendors this file onto each
+# fork as .github/workflows/rafaelgaspar-tag-bump-reusable.yaml.
 name: rafaelgaspar Tag Bump
 
 on:

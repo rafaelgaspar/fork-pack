@@ -3,8 +3,10 @@
 Task-specific runbooks for coding agents. Each skill is a directory with `SKILL.md`
 (YAML frontmatter + instructions).
 
-When vendored into a fork, `.claude/skills` is a symlink to `.cursor/skills`.
-Edit and commit under `.cursor/skills/` only.
+This pack keeps skills in `dot-cursor/skills` so Cursor does not load them as
+project skills for fork-pack itself. `scripts/install.sh` copies
+`rafaelgaspar-fork` onto forks as `.cursor/skills/rafaelgaspar-fork`.
+On a fork, `.claude/skills` is a symlink to `.cursor/skills`.
 
 ## Index
 
