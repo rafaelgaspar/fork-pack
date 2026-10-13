@@ -570,19 +570,17 @@ fi
 UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_TAG}^{commit}") \
   || die "upstream tag not found: ${UPSTREAM_TAG} (remote ${UPSTREAM_REMOTE})"
 
-# Prefer the peeled commit SHA (annotated tags). A retag is fetched with --force above.
-remote_tag_sha=$(
+# Compare tag *objects* (annotated tag SHA != peeled commit). Some hosts omit
+# the refs/tags/T^{} line from ls-remote, so do not treat the tag object as a commit.
+local_tag_obj=$(git rev-parse "${UPSTREAM_TAG}")
+remote_tag_obj=$(
   git ls-remote --tags "$UPSTREAM_REMOTE" "refs/tags/${UPSTREAM_TAG}" \
-    | awk -v tag="refs/tags/${UPSTREAM_TAG}" '
-        $2 == tag "^{}" { peeled = $1 }
-        $2 == tag { lightweight = $1 }
-        END { print (peeled != "" ? peeled : lightweight) }
-      '
+    | awk -v tag="refs/tags/${UPSTREAM_TAG}" '$2 == tag { print $1; exit }'
 )
-[[ -n $remote_tag_sha ]] \
+[[ -n $remote_tag_obj ]] \
   || die "upstream remote has no tag ${UPSTREAM_TAG} (refusing local/forged tag)"
-[[ $remote_tag_sha == "$UPSTREAM_SHA" ]] \
-  || die "local tag ${UPSTREAM_TAG} (${UPSTREAM_SHA}) != upstream (${remote_tag_sha}); retag not fetched"
+[[ $local_tag_obj == "$remote_tag_obj" ]] \
+  || die "local tag ${UPSTREAM_TAG} (${local_tag_obj}) != upstream (${remote_tag_obj}); retag not fetched"
 
 log "integration branch: ${INTEGRATION_BRANCH}"
 log "upstream tag: ${UPSTREAM_TAG} (${UPSTREAM_SHA})"
