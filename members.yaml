@@ -1,0 +1,26 @@
+# Public rafaelgaspar application forks that consume this pack.
+forks:
+  homepage:
+    repo: rafaelgaspar/homepage
+    upstream: https://github.com/gethomepage/homepage.git
+    tag_glob: 'v*.*.*'
+    tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+    publish_workflow: rafaelgaspar-ghcr-publish.yaml
+  supergateway:
+    repo: rafaelgaspar/supergateway
+    upstream: https://github.com/supercorp-ai/supergateway.git
+    tag_glob: 'v*.*.*'
+    tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+    publish_workflow: rafaelgaspar-ghcr-publish.yaml
+  xpra:
+    repo: rafaelgaspar/xpra
+    upstream: https://github.com/Xpra-org/xpra.git
+    tag_glob: 'v*.*.*'
+    tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+    publish_workflow: rafaelgaspar-release.yaml
+  xpra-html5:
+    repo: rafaelgaspar/xpra-html5
+    upstream: https://github.com/Xpra-org/xpra-html5.git
+    tag_glob: 'v[0-9]*'
+    tag_filter: '^v[0-9]+$'
+    publish_workflow: rafaelgaspar-release.yaml
