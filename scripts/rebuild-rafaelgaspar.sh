@@ -62,10 +62,12 @@ discover_stack() {
   mapfile -t STACK < <(
     for branch in "${FEAT_BRANCHES[@]}"; do
       count=$(git rev-list --count "${UPSTREAM_SHA}..$(ref_tip "$(feat_remote "$branch")")")
+      # ROOT always leads. Extra infra commits on feat/rafaelgaspar must not
+      # sort it after a child that is still based on an older ROOT tip.
       if [[ $branch == "$ROOT_FEAT" ]]; then
-        order=$((count * 2))
+        order=0
       else
-        order=$((count * 2 + 1))
+        order=$((count + 1))
       fi
       printf '%d\t%s\n' "$order" "$branch"
     done | sort -n | cut -f2-
