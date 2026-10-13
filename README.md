@@ -49,6 +49,7 @@ jobs:
       tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
       upstream_tag: ${{ inputs.upstream_tag }}
       dry_run: ${{ inputs.dry_run }}
+      event_name: ${{ github.event_name }}
     secrets: inherit
     permissions:
       contents: write

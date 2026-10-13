@@ -38,6 +38,7 @@ jobs:
       upstream_tag: ${{ inputs.upstream_tag }}
       dry_run: ${{ inputs.dry_run }}
       squash: ${{ inputs.squash }}
+      event_name: ${{ github.event_name }}
     secrets: inherit
     permissions:
       contents: write

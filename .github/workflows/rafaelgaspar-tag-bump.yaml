@@ -30,6 +30,11 @@ on:
         required: false
         type: boolean
         default: true
+      event_name:
+        description: Caller github.event_name (workflow_call itself is always workflow_call)
+        required: false
+        type: string
+        default: ''
     outputs:
       should_release:
         description: true when the stack was rebuilt and should be published
@@ -121,14 +126,14 @@ jobs:
       - name: Decide whether to rebuild
         id: plan
         env:
-          EVENT_NAME: ${{ github.event_name }}
+          EVENT_NAME: ${{ inputs.event_name || github.event_name }}
           UPSTREAM_TAG: ${{ steps.tag.outputs.upstream_tag }}
         run: |
           set -euo pipefail
           UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_TAG}^{commit}")
           # Skip only when this exact upstream commit is already in the stack.
           # A retagged vN (same name, new SHA) is not an ancestor and will rebuild.
-          # workflow_call sees the caller's event_name (schedule / workflow_dispatch).
+          # Caller must pass event_name; this workflow's own event is always workflow_call.
           if [[ "$EVENT_NAME" == "schedule" ]] && git merge-base --is-ancestor "$UPSTREAM_SHA" origin/feat/rafaelgaspar; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
             echo "Scheduled run: ${UPSTREAM_TAG} (${UPSTREAM_SHA}) is already the stack base; skipping."
