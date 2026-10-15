@@ -45,6 +45,9 @@ on:
       dry_run:
         type: boolean
         default: false
+      squash:
+        type: boolean
+        default: true
 jobs:
   bump:
     uses: ./.github/workflows/rafaelgaspar-tag-bump-reusable.yaml
@@ -52,8 +55,11 @@ jobs:
       upstream_url: https://github.com/gethomepage/homepage.git
       tag_glob: 'v*.*.*'
       tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
-      upstream_tag: ${{ inputs.upstream_tag }}
-      dry_run: ${{ inputs.dry_run }}
+      # schedule has no workflow_dispatch inputs; passing inputs.* (null) into
+      # boolean reusable inputs fails the called job before it starts.
+      upstream_tag: ${{ github.event.inputs.upstream_tag || '' }}
+      dry_run: ${{ github.event.inputs.dry_run == 'true' }}
+      squash: ${{ github.event.inputs.squash != 'false' }}
       event_name: ${{ github.event_name }}
     secrets: inherit
     permissions:
