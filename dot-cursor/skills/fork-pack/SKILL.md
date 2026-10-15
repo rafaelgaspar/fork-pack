@@ -12,16 +12,16 @@ disable-model-invocation: true
 Repo: [rafaelgaspar/fork-pack](https://github.com/rafaelgaspar/fork-pack).
 Clones live in `~/Projects/ThirdParty/fork-pack`.
 
-This pack stores GitHub files in `dot-github/` and skills in `dot-cursor/`
-so Actions and Cursor project skills do not run against fork-pack itself.
-`scripts/install.sh` vendors them onto forks as `.github/` and `.cursor/`.
+Reusable tag-bump lives in `.github/workflows` (`workflow_call` only, so it
+does not run on fork-pack). Skills stay in `dot-cursor/`; `scripts/install.sh`
+vendors scripts and `rafaelgaspar-fork` onto forks as `.github/scripts` and
+`.cursor/skills`.
 
 Change `scripts/rebuild-rafaelgaspar.sh`,
-`dot-github/workflows/rafaelgaspar-tag-bump.yaml`, and
+`.github/workflows/rafaelgaspar-tag-bump.yaml`, and
 `dot-cursor/skills/rafaelgaspar-fork/` **here**, not in the four forks.
-GitHub will not `uses:` a reusable workflow from `dot-github`; forks call a
-vendored `.github/workflows/rafaelgaspar-tag-bump-reusable.yaml`. Publish
-workflows stay per-fork.
+Forks call `rafaelgaspar/fork-pack/.github/workflows/rafaelgaspar-tag-bump.yaml@main`.
+Publish workflows stay per-fork.
 
 Members and tag filters: `members.yaml`. Fork workflow for agents:
 [rafaelgaspar-fork](../rafaelgaspar-fork/SKILL.md).

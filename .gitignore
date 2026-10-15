@@ -1,8 +1,6 @@
 .fork-pack/
-# Live GitHub/Cursor paths must not exist in this repo — Actions and
-# project skills would pick them up. Canonical copies are dot-github/
-# and dot-cursor/; install.sh vendors them onto forks as .github/.cursor.
-.github/
+# Cursor project skills must not live at .cursor/ here. GitHub files live at
+# .github/ so forks can uses: the reusable workflow (workflow_call only).
 .cursor/
 *.swp
 .DS_Store

@@ -13,9 +13,9 @@ disable-model-invocation: true
 Shared workflow for the public application forks. Clone them under
 `~/Projects/ThirdParty/<name>`. Shared scripts, tag-bump, and this skill live in
 [rafaelgaspar/fork-pack](https://github.com/rafaelgaspar/fork-pack)
-(`~/Projects/ThirdParty/fork-pack`; files in `dot-github/` and `dot-cursor/`,
-vendored onto forks as `.github/` and `.cursor/`). Per-fork remotes and tag
-filters: `members.yaml`.
+(`~/Projects/ThirdParty/fork-pack`; reusable tag-bump in `.github/workflows`,
+skills in `dot-cursor/` vendored onto forks as `.cursor/`). Per-fork remotes
+and tag filters: `members.yaml`.
 
 | Fork | Upstream | Ships from `rafaelgaspar` |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Vendor pack scripts, reusable tag-bump, and the rafaelgaspar-fork skill
-# into a fork checkout as .github / .cursor (the live names GitHub and Cursor use).
+# Vendor pack scripts and the rafaelgaspar-fork skill into a fork checkout.
+# Tag-bump reusable stays in fork-pack .github/workflows; forks uses: it from there.
 set -euo pipefail
 
 dest=${1:?usage: install.sh /path/to/fork}
@@ -17,10 +17,7 @@ cp -a "${pack}/scripts/rebuild-rafaelgaspar.sh" "${dest}/.github/scripts/"
 cp -a "${pack}/scripts/resolve-integration-tag.sh" "${dest}/.github/scripts/"
 chmod +x "${dest}/.github/scripts/"*.sh
 
-# GitHub only accepts reusable workflows under .github/workflows, so the pack
-# stores the file in dot-github/ and each fork gets a local copy.
-cp -a "${pack}/dot-github/workflows/rafaelgaspar-tag-bump.yaml" \
-  "${dest}/.github/workflows/rafaelgaspar-tag-bump-reusable.yaml"
+rm -f "${dest}/.github/workflows/rafaelgaspar-tag-bump-reusable.yaml"
 
 rm -rf "${dest}/.cursor/skills/rafaelgaspar-fork"
 cp -a "${pack}/dot-cursor/skills/rafaelgaspar-fork" "${dest}/.cursor/skills/"
@@ -42,4 +39,4 @@ if [[ ! -e ${dest}/.claude/skills ]]; then
   mkdir -p "${dest}/.claude"
   ln -s ../.cursor/skills "${dest}/.claude/skills"
 fi
-printf 'installed pack scripts, reusable tag-bump, and rafaelgaspar-fork skill into %s\n' "$dest"
+printf 'installed pack scripts and rafaelgaspar-fork skill into %s\n' "$dest"

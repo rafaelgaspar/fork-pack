@@ -9,9 +9,10 @@ Shared GitOps files for the public `rafaelgaspar/*` application forks
 This repo is the source of truth for stack rebuild and tag-bump. Per-fork
 publish workflows (GHCR vs overlay `.deb` vs HTML5 tarball) stay in the forks.
 
-This repo has no `.github/` or `.cursor/` so GitHub Actions and Cursor project
-skills never activate here. Canonical copies live in `dot-github/` and
-`dot-cursor/`; `scripts/install.sh` vendors them onto forks as the live names.
+Reusable tag-bump lives in `.github/workflows` (`workflow_call` only, so it
+does not run on this repo). Cursor skills stay in `dot-cursor/` so they do
+not activate here; `scripts/install.sh` vendors the skill and scripts onto
+forks.
 
 ## Layout
 
@@ -19,17 +20,16 @@ skills never activate here. Canonical copies live in `dot-github/` and
 |---|---|
 | `scripts/rebuild-rafaelgaspar.sh` | Rebuild linear `feat/*` on an upstream tag; point `rafaelgaspar` at the tip |
 | `scripts/resolve-integration-tag.sh` | Pick `v{base}-rafaelgaspar.{N}` for a release |
-| `dot-github/workflows/rafaelgaspar-tag-bump.yaml` | Reusable tag-bump (vendored onto forks; GitHub will not `uses:` this path) |
+| `.github/workflows/rafaelgaspar-tag-bump.yaml` | Reusable tag-bump (`workflow_call` only; forks `uses:` this file) |
 | `dot-cursor/skills/rafaelgaspar-fork/` | Shared agent skill for fork workflow |
 | `examples/rafaelgaspar-tag-bump.yaml` | Thin per-fork caller (cron + inputs) |
 | `members.yaml` | Fork list, upstream remotes, tag filters |
 
 ## Consume from a fork
 
-GitHub reusable workflows must live under `.github/workflows`, so each fork
-gets a local copy of the pack reusable (`rafaelgaspar-tag-bump-reusable.yaml`)
-and a thin caller that `uses:` that file. Tag-bump still checkouts this repo
-for the rebuild scripts.
+Each fork keeps a thin caller that `uses:` this repo’s reusable workflow.
+Publish workflows stay per-fork. Tag-bump still checkouts this repo for the
+rebuild scripts.
 
 ```yaml
 # .github/workflows/rafaelgaspar-tag-bump.yaml
@@ -50,7 +50,7 @@ on:
         default: true
 jobs:
   bump:
-    uses: ./.github/workflows/rafaelgaspar-tag-bump-reusable.yaml
+    uses: rafaelgaspar/fork-pack/.github/workflows/rafaelgaspar-tag-bump.yaml@main
     with:
       upstream_url: https://github.com/gethomepage/homepage.git
       tag_glob: 'v*.*.*'
@@ -85,7 +85,7 @@ FORK_PACK_SCRIPTS=~/Projects/ThirdParty/fork-pack/scripts \
   ~/Projects/ThirdParty/fork-pack/scripts/rebuild-rafaelgaspar.sh --squash --push vX.Y.Z
 ```
 
-Or vendor scripts, reusable tag-bump, and the skill into the fork:
+Or vendor scripts and the skill into the fork:
 
 ```sh
 ~/Projects/ThirdParty/fork-pack/scripts/install.sh /path/to/fork

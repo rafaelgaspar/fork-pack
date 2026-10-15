@@ -225,11 +225,8 @@ install_canonical_script() {
       cp -a "$skill_src" .cursor/skills/rafaelgaspar-fork
       git add .cursor/skills/rafaelgaspar-fork
     fi
-    reusable_src="${pack_root}/dot-github/workflows/rafaelgaspar-tag-bump.yaml"
-    if [[ -f $reusable_src ]]; then
-      mkdir -p .github/workflows
-      cp "$reusable_src" .github/workflows/rafaelgaspar-tag-bump-reusable.yaml
-      git add .github/workflows/rafaelgaspar-tag-bump-reusable.yaml
+    if [[ -f .github/workflows/rafaelgaspar-tag-bump-reusable.yaml ]]; then
+      git rm -f --ignore-unmatch .github/workflows/rafaelgaspar-tag-bump-reusable.yaml
     fi
   elif [[ -n $script_path && -f $script_path ]]; then
     cp "$script_path" .github/scripts/rebuild-rafaelgaspar.sh
