@@ -42,9 +42,9 @@ on:
         description: true when the stack was rebuilt and should be published
         value: ${{ jobs.bump.outputs.should_release }}
 
-concurrency:
-  group: rafaelgaspar-tag-bump
-  cancel-in-progress: false
+# Do not set concurrency here. The fork caller already uses group
+# rafaelgaspar-tag-bump; the same group on this reusable deadlocks
+# (top-level workflow vs job bump) because the called jobs run in the fork.
 
 permissions: {}
 
