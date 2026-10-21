@@ -4,7 +4,8 @@ Shared GitOps files for the public `rafaelgaspar/*` application forks
 ([homepage](https://github.com/rafaelgaspar/homepage),
 [supergateway](https://github.com/rafaelgaspar/supergateway),
 [xpra](https://github.com/rafaelgaspar/xpra),
-[xpra-html5](https://github.com/rafaelgaspar/xpra-html5)).
+[xpra-html5](https://github.com/rafaelgaspar/xpra-html5),
+[otbr-insight](https://github.com/rafaelgaspar/otbr-insight)).
 
 This repo is the source of truth for stack rebuild and tag-bump. Per-fork
 publish workflows (GHCR vs overlay `.deb` vs HTML5 tarball) stay in the forks.
@@ -61,7 +62,7 @@ jobs:
       dry_run: ${{ github.event.inputs.dry_run == 'true' }}
       squash: ${{ github.event.inputs.squash != 'false' }}
       event_name: ${{ github.event_name }}
-    secrets: inherit
+    secrets: inherit  # needs repo secret DISCORD_WEBHOOK_FORKS_TAG_BUMP
     permissions:
       contents: write
       packages: write
@@ -96,3 +97,15 @@ Or vendor scripts and the skill into the fork:
 Default in `rebuild-rafaelgaspar.sh` is `v` + digits, optionally `X.Y.Z`
 (`v2.5.0` and `v21`). Forks pass `tag_filter` from `members.yaml` so html5
 stays on `^v[0-9]+$`.
+
+## Tag-bump merge and Discord
+
+Rebuild registers [mergiraf](https://mergiraf.org/) as a local Git merge
+driver (`*.git/info/attributes`, not committed) and only force-pushes after
+the whole stack is rebuilt locally. Scheduled runs skip when the upstream
+commit is already an ancestor of `rafaelgaspar` (the shipped pointer).
+
+Attempted rebuilds (not daily skips) post success or failure to Discord
+`#forks-tag-bump`. Put the channel incoming webhook in an Actions secret
+named **`DISCORD_WEBHOOK_FORKS_TAG_BUMP`** on each fork (`secrets: inherit`
+on the thin caller).

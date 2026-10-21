@@ -2,7 +2,7 @@
 name: rafaelgaspar-fork
 description: >-
   Work with rafaelgaspar application forks (homepage, supergateway, xpra,
-  xpra-html5) — stacked feat branches, rafaelgaspar integration pointer,
+  xpra-html5, otbr-insight) — stacked feat branches, rafaelgaspar integration pointer,
   upstream tag rebuilds. Use when changing fork branches, stack order, tag-bump,
   or fork-pack shared files.
 disable-model-invocation: true
@@ -23,6 +23,7 @@ and tag filters: `members.yaml`.
 | [supergateway](https://github.com/rafaelgaspar/supergateway) | [supercorp-ai/supergateway](https://github.com/supercorp-ai/supergateway) | `ghcr.io/rafaelgaspar/supergateway` |
 | [xpra](https://github.com/rafaelgaspar/xpra) | [Xpra-org/xpra](https://github.com/Xpra-org/xpra) | GitHub release + overlay `.deb` |
 | [xpra-html5](https://github.com/rafaelgaspar/xpra-html5) | [Xpra-org/xpra-html5](https://github.com/Xpra-org/xpra-html5) | GitHub release + HTML5 tarball |
+| [otbr-insight](https://github.com/rafaelgaspar/otbr-insight) | [sumitbirla/otbr-insight](https://github.com/sumitbirla/otbr-insight) | `ghcr.io/rafaelgaspar/otbr-insight` |
 
 This skill is **fork workflow only**. Deploy config (Helm, secrets, image overlays)
 belongs in the private cluster repo, not in these public forks.
@@ -106,7 +107,11 @@ When upstream publishes a git tag **T** matching `tag_filter` in `members.yaml`
 3. Reset `rafaelgaspar` to the stack tip and force-push with lease.
 
 Scheduled tag-bump skips only when that tag's **commit SHA** is already an
-ancestor of `feat/rafaelgaspar`. A retag of the same name (new SHA) rebuilds.
+ancestor of **`rafaelgaspar`** (the shipped pointer), not `feat/rafaelgaspar`.
+A retag of the same name (new SHA) rebuilds. Rebuilds register **mergiraf**
+as a local merge driver; leftover conflicts post to Discord `#forks-tag-bump`
+(secret `DISCORD_WEBHOOK_FORKS_TAG_BUMP`). Layers are pushed only after the
+whole stack is rebuilt locally.
 
 Manual replay:
 
@@ -115,7 +120,7 @@ FORK_PACK_SCRIPTS=~/Projects/ThirdParty/fork-pack/scripts \
   ~/Projects/ThirdParty/fork-pack/scripts/rebuild-rafaelgaspar.sh --squash --push vX.Y.Z
 ```
 
-Change rebuild/tag-bump **in fork-pack**, not by forking copies in the four
+Change rebuild/tag-bump **in fork-pack**, not by forking copies in the five
 repos.
 
 ## One commit per feat branch
