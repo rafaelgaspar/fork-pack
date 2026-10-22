@@ -42,6 +42,8 @@ jobs:
       dry_run: ${{ github.event.inputs.dry_run == 'true' }}
       squash: ${{ github.event.inputs.squash != 'false' }}
       event_name: ${{ github.event_name }}
+    # inherit must include repo secret DISCORD_WEBHOOK_FORKS_TAG_BUMP
+    # (incoming webhook for Discord #forks-tag-bump).
     secrets: inherit
     permissions:
       contents: write

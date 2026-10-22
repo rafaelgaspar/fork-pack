@@ -493,6 +493,40 @@ print("resolved Jest it() additions in test files")
 PY
 }
 
+enable_mergiraf() {
+  command -v mergiraf >/dev/null 2>&1 || {
+    log "mergiraf not in PATH; using git's default merge"
+    return 0
+  }
+  git config --local merge.conflictStyle diff3
+  git config --local merge.mergiraf.name mergiraf
+  git config --local merge.mergiraf.driver \
+    'mergiraf merge --git %O %A %B -s %S -x %X -y %Y -p %P -l %L'
+  local attr_file
+  attr_file="$(git rev-parse --git-dir)/info/attributes"
+  mkdir -p "$(dirname "$attr_file")"
+  if ! grep -q '^[[:space:]]*\*[[:space:]]\+merge=mergiraf' "$attr_file" 2>/dev/null; then
+    printf '* merge=mergiraf\n' >>"$attr_file"
+  fi
+  log "mergiraf merge driver enabled ($(mergiraf --version 2>/dev/null | head -1 || echo ok))"
+}
+
+# Second pass after git/mergiraf left conflict markers (unsupported langs, parse errors).
+try_mergiraf_solve() {
+  command -v mergiraf >/dev/null 2>&1 || return 1
+  local path remaining=0
+  while IFS= read -r path; do
+    [[ -n $path ]] || continue
+    if mergiraf solve "$path"; then
+      git add -- "$path"
+    else
+      remaining=1
+    fi
+  done < <(git diff --name-only --diff-filter=U)
+  [[ $remaining -eq 0 ]] || return 1
+  ! git diff --name-only --diff-filter=U | grep -q .
+}
+
 # Apply the old layer's patch onto the new parent (3-way merge vs the old parent).
 # Do not checkout the old tree — that would revert upstream files to the previous tag.
 apply_child_layer_patch() {
@@ -524,6 +558,9 @@ apply_child_layer_patch() {
     .claude/skills \
     2>/dev/null || true
   if ! $cherry_ok; then
+    if git diff --name-only --diff-filter=U | grep -q .; then
+      try_mergiraf_solve || true
+    fi
     if git diff --name-only --diff-filter=U | grep -q .; then
       if ! resolve_jest_test_conflicts; then
         die "cherry-pick of ${tree_ref} onto ${parent_ref} conflicted"
@@ -619,6 +656,8 @@ if $DRY_RUN; then
   exit 0
 fi
 
+enable_mergiraf
+
 parent_ref=$UPSTREAM_SHA
 for branch in "${STACK[@]}"; do
   log "rebuild ${branch} on ${parent_ref}"
@@ -640,19 +679,22 @@ for branch in "${STACK[@]}"; do
     fi
   fi
   validate_stack_link "$branch" "$parent_ref"
-  if $PUSH; then
-    push_ref "$branch"
-  fi
   parent_ref=$(ref_tip "$branch")
 done
 
 log "reset ${INTEGRATION_BRANCH} to ${STACK_TIP} (${parent_ref})"
 git checkout --ignore-other-worktrees -B "$INTEGRATION_BRANCH" "$parent_ref"
+validate_integration_pointer "$INTEGRATION_BRANCH" "$STACK_TIP"
 
+# Push only after the whole stack is rebuilt locally. Pushing ROOT first
+# made later scheduled runs skip (ancestor of feat/rafaelgaspar) while
+# rafaelgaspar still pointed at the old stack.
 if $PUSH; then
+  log "push entire rebuilt stack"
+  for branch in "${STACK[@]}"; do
+    push_ref "$branch"
+  done
   push_ref "$INTEGRATION_BRANCH"
 fi
-
-validate_integration_pointer "$INTEGRATION_BRANCH" "$STACK_TIP"
 
 log "done"

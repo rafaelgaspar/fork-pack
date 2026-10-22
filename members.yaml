@@ -24,3 +24,9 @@ forks:
     tag_glob: 'v[0-9]*'
     tag_filter: '^v[0-9]+$'
     publish_workflow: rafaelgaspar-release.yaml
+  otbr-insight:
+    repo: rafaelgaspar/otbr-insight
+    upstream: https://github.com/sumitbirla/otbr-insight.git
+    tag_glob: 'v*.*.*'
+    tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+    publish_workflow: rafaelgaspar-ghcr-publish.yaml

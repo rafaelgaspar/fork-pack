@@ -37,6 +37,10 @@ on:
         required: false
         type: string
         default: ''
+    secrets:
+      DISCORD_WEBHOOK_FORKS_TAG_BUMP:
+        description: Incoming webhook for #forks-tag-bump (fork repo secret; inherit from callers)
+        required: false
     outputs:
       should_release:
         description: true when the stack was rebuilt and should be published
@@ -114,11 +118,14 @@ jobs:
           [[ -n "${UPSTREAM_TAG:-}" ]] || { echo "No upstream release tag found"; exit 1; }
           git rev-parse "${UPSTREAM_TAG}^{commit}" >/dev/null
 
-          CURRENT_BASE_TAG=$(
-            git tag -l "${TAG_GLOB}" --merged origin/feat/rafaelgaspar \
-              | grep -E "${TAG_FILTER}" \
-              | sort -V | tail -1
-          )
+          CURRENT_BASE_TAG=""
+          if git rev-parse --verify origin/rafaelgaspar >/dev/null 2>&1; then
+            CURRENT_BASE_TAG=$(
+              git tag -l "${TAG_GLOB}" --merged origin/rafaelgaspar \
+                | grep -E "${TAG_FILTER}" \
+                | sort -V | tail -1
+            )
+          fi
 
           echo "upstream_tag=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
           echo "current_base_tag=${CURRENT_BASE_TAG}" >> "$GITHUB_OUTPUT"
@@ -133,16 +140,31 @@ jobs:
         run: |
           set -euo pipefail
           UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_TAG}^{commit}")
-          # Skip only when this exact upstream commit is already in the stack.
+          # Skip only when this exact upstream commit is already in the *shipped*
+          # pointer. Checking feat/rafaelgaspar hid failed mid-stack rebuilds
+          # (ROOT already on T, rafaelgaspar still on the old tip).
           # A retagged vN (same name, new SHA) is not an ancestor and will rebuild.
           # Caller must pass event_name; this workflow's own event is always workflow_call.
-          if [[ "$EVENT_NAME" == "schedule" ]] && git merge-base --is-ancestor "$UPSTREAM_SHA" origin/feat/rafaelgaspar; then
+          if [[ "$EVENT_NAME" == "schedule" ]] \
+            && git rev-parse --verify origin/rafaelgaspar >/dev/null 2>&1 \
+            && git merge-base --is-ancestor "$UPSTREAM_SHA" origin/rafaelgaspar; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Scheduled run: ${UPSTREAM_TAG} (${UPSTREAM_SHA}) is already the stack base; skipping."
+            echo "Scheduled run: ${UPSTREAM_TAG} (${UPSTREAM_SHA}) is already an ancestor of rafaelgaspar; skipping."
           else
             echo "should_run=true" >> "$GITHUB_OUTPUT"
             echo "Rebuild ${UPSTREAM_TAG} (${UPSTREAM_SHA})"
           fi
+
+      - name: Install mergiraf
+        if: steps.plan.outputs.should_run == 'true' && inputs.dry_run != true
+        env:
+          MERGIRAF_VERSION: v0.20.0
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://codeberg.org/mergiraf/mergiraf/releases/download/${MERGIRAF_VERSION}/mergiraf_x86_64-unknown-linux-musl.tar.gz" \
+            | tar -xz -C /usr/local/bin mergiraf
+          chmod +x /usr/local/bin/mergiraf
+          mergiraf --version
 
       - name: Dry run (validate stack)
         if: steps.plan.outputs.should_run == 'true' && inputs.dry_run == true
@@ -162,14 +184,72 @@ jobs:
           CANONICAL_REBUILD_SCRIPT: ${{ github.workspace }}/.fork-pack/scripts/rebuild-rafaelgaspar.sh
           UPSTREAM_TAG_PATTERN: ${{ inputs.tag_filter }}
         run: |
+          set -euo pipefail
           chmod +x .fork-pack/scripts/rebuild-rafaelgaspar.sh
           extra=()
           if [[ "${{ inputs.squash }}" == "true" ]]; then
             extra+=(--squash)
           fi
-          .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push "${{ steps.tag.outputs.upstream_tag }}"
+          .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push "${{ steps.tag.outputs.upstream_tag }}" \
+            2>&1 | tee rebuild.log
 
       - name: Record publish intent
         id: publish
         if: steps.rebuild.outcome == 'success'
         run: echo "should_release=true" >> "$GITHUB_OUTPUT"
+
+      # Notify only when a rebuild was attempted. Daily skips stay quiet.
+      # Secret: DISCORD_WEBHOOK_FORKS_TAG_BUMP on each fork (incoming webhook for #forks-tag-bump).
+      - name: Notify Discord
+        if: always() && (steps.rebuild.outcome == 'success' || steps.rebuild.outcome == 'failure')
+        continue-on-error: true
+        env:
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK_FORKS_TAG_BUMP }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          UPSTREAM_TAG: ${{ steps.tag.outputs.upstream_tag }}
+          OUTCOME: ${{ steps.rebuild.outcome }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${WEBHOOK:-}" ]]; then
+            echo "DISCORD_WEBHOOK_FORKS_TAG_BUMP is not set; skip notify"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json, os, pathlib, urllib.request
+
+          webhook = os.environ["WEBHOOK"]
+          repo = os.environ["REPO"]
+          run_url = os.environ["RUN_URL"]
+          tag = os.environ["UPSTREAM_TAG"]
+          ok = os.environ["OUTCOME"] == "success"
+          conflicts = ""
+          log = pathlib.Path("rebuild.log")
+          if log.is_file():
+              for line in log.read_text(errors="replace").splitlines():
+                  if line.startswith("unresolved conflicts:"):
+                      conflicts = line
+          if ok:
+              content = (
+                  f"**tag-bump succeeded** `{repo}` onto `{tag}`\n"
+                  f"Run: <{run_url}>\n"
+                  "`rafaelgaspar` was rebuilt and pushed; publish should follow."
+              )
+          else:
+              extra = f"\n`{conflicts}`" if conflicts else ""
+              content = (
+                  f"**tag-bump failed** `{repo}` onto `{tag}`\n"
+                  f"Run: <{run_url}>{extra}\n"
+                  "Ask **@Fixer** to use the **fix-forks-conflicts** skill. "
+                  "Do not push `main`. Do not merge PRs."
+              )
+          payload = json.dumps({"username": "fork-pack tag-bump", "content": content[:1900]}).encode()
+          req = urllib.request.Request(
+              webhook,
+              data=payload,
+              headers={"Content-Type": "application/json", "User-Agent": "fork-pack-tag-bump"},
+              method="POST",
+          )
+          with urllib.request.urlopen(req, timeout=30) as resp:
+              print(f"discord webhook status {resp.status}")
+          PY
