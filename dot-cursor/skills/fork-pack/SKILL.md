@@ -25,8 +25,11 @@ Publish workflows stay per-fork.
 
 Tag-bump installs **mergiraf**, pushes only after the full local stack, and
 skips the daily cron when `origin/rafaelgaspar` already contains the upstream
-commit. Rebuild success/failure posts to Discord `#forks-tag-bump` via
-secret `DISCORD_WEBHOOK_FORKS_TAG_BUMP` on each fork (incoming webhook). Daily skips stay
+commit. Mergiraf keeps overlay body insertions; leftover conflicts are
+usually wrapper composition (`withAuth` vs `withApiMetrics`) — union the
+wraps and do not rewrite the handler from ours/HEAD. Rebuild
+success/failure posts to Discord `#forks-tag-bump` via secret
+`DISCORD_WEBHOOK_FORKS_TAG_BUMP` on each fork (incoming webhook). Daily skips stay
 quiet. Fixer restacks leftover conflicts with
 `k3s-home` skill `fix-forks-conflicts`.
 
