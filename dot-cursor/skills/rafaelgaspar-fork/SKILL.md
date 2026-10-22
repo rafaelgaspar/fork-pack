@@ -111,7 +111,9 @@ ancestor of **`rafaelgaspar`** (the shipped pointer), not `feat/rafaelgaspar`.
 A retag of the same name (new SHA) rebuilds. Rebuilds register **mergiraf**
 as a local merge driver; leftover conflicts post to Discord `#forks-tag-bump`
 (secret `DISCORD_WEBHOOK_FORKS_TAG_BUMP`). Layers are pushed only after the
-whole stack is rebuilt locally.
+whole stack is rebuilt locally. Restack those leftovers on **cursor-desktop**
+(git + GPG). Fixer is allowed in the channel but cannot restack yet (GitHub
+MCP only, no git, no GPG).
 
 Mergiraf usually **keeps** overlay statements inside a handler and only
 leaves a conflict when both sides wrap the same export (`withAuth(handler)`

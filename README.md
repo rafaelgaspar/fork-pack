@@ -112,4 +112,6 @@ ours/HEAD.
 Attempted rebuilds (not daily skips) post success or failure to Discord
 `#forks-tag-bump`. Put the channel incoming webhook in an Actions secret
 named **`DISCORD_WEBHOOK_FORKS_TAG_BUMP`** on each fork (`secrets: inherit`
-on the thin caller).
+on the thin caller). Failures are restacked on **cursor-desktop** (git +
+GPG). Fixer can read the Actions log over GitHub MCP; it has no git binary
+and no GPG, so it cannot rebuild the stack yet.
