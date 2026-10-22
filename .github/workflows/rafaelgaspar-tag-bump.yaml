@@ -240,7 +240,7 @@ jobs:
               content = (
                   f"**tag-bump failed** `{repo}` onto `{tag}`\n"
                   f"Run: <{run_url}>{extra}\n"
-                  "Ask **@Fixer** to use the **fix-forks-conflicts** skill. "
+                  "Fixer can summarize the Actions log but cannot restack yet. "
                   "Do not push `main`. Do not merge PRs."
               )
           payload = json.dumps({"username": "fork-pack tag-bump", "content": content[:1900]}).encode()

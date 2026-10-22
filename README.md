@@ -104,8 +104,13 @@ Rebuild registers [mergiraf](https://mergiraf.org/) as a local Git merge
 driver (`*.git/info/attributes`, not committed) and only force-pushes after
 the whole stack is rebuilt locally. Scheduled runs skip when the upstream
 commit is already an ancestor of `rafaelgaspar` (the shipped pointer).
+Mergiraf keeps overlay body insertions; leftover conflicts are almost
+always the export wrap (`withAuth` vs `withApiMetrics`). Union the wrappers
+and keep the rest of the merged file — do not rebuild the handler from
+ours/HEAD.
 
 Attempted rebuilds (not daily skips) post success or failure to Discord
 `#forks-tag-bump`. Put the channel incoming webhook in an Actions secret
 named **`DISCORD_WEBHOOK_FORKS_TAG_BUMP`** on each fork (`secrets: inherit`
-on the thin caller).
+on the thin caller). Fixer can read the Actions log over GitHub MCP; it
+has no git binary and no GPG, so it cannot rebuild the stack yet.
