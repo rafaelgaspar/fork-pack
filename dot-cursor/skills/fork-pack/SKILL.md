@@ -30,9 +30,8 @@ usually wrapper composition (`withAuth` vs `withApiMetrics`) — union the
 wraps and do not rewrite the handler from ours/HEAD. Rebuild
 success/failure posts to Discord `#forks-tag-bump` via secret
 `DISCORD_WEBHOOK_FORKS_TAG_BUMP` on each fork (incoming webhook). Daily skips stay
-quiet. Restack leftover conflicts on **cursor-desktop** (git + GPG).
-Fixer has GitHub MCP only — it can summarize a failed Actions run in
-`#forks-tag-bump`, not rebuild the stack.
+quiet. Fixer has GitHub MCP only — it can summarize a failed Actions run
+in `#forks-tag-bump`, not rebuild the stack.
 
 Members and tag filters: `members.yaml`. Fork workflow for agents:
 [rafaelgaspar-fork](../rafaelgaspar-fork/SKILL.md).

@@ -240,7 +240,6 @@ jobs:
               content = (
                   f"**tag-bump failed** `{repo}` onto `{tag}`\n"
                   f"Run: <{run_url}>{extra}\n"
-                  "Restack on **cursor-desktop** (git + GPG). "
                   "Fixer can summarize the Actions log but cannot restack yet. "
                   "Do not push `main`. Do not merge PRs."
               )
