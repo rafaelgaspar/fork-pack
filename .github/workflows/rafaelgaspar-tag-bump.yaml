@@ -45,6 +45,9 @@ on:
       should_release:
         description: true when the stack was rebuilt and should be published
         value: ${{ jobs.bump.outputs.should_release }}
+      upstream_tag:
+        description: Upstream tag the stack was rebuilt onto
+        value: ${{ jobs.bump.outputs.upstream_tag }}
 
 # Do not set concurrency here. The fork caller already uses group
 # rafaelgaspar-tag-bump; the same group on this reusable deadlocks
@@ -58,6 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_release: ${{ steps.publish.outputs.should_release }}
+      upstream_tag: ${{ steps.tag.outputs.upstream_tag }}
     permissions:
       contents: write
 

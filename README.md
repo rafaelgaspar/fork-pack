@@ -72,6 +72,11 @@ jobs:
     uses: ./.github/workflows/rafaelgaspar-ghcr-publish.yaml
     with:
       ref: rafaelgaspar
+      # github.event_name in the called publish workflow is the *caller*
+      # event (schedule), not workflow_call. Checkout must use inputs.ref
+      # (this branch tip after the force-push), never github.sha from the
+      # start of the run, or the image is tagged from the previous overlay.
+      upstream_tag: ${{ needs.bump.outputs.upstream_tag }}
     secrets: inherit
     permissions:
       contents: write

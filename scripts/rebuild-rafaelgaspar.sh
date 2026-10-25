@@ -558,6 +558,15 @@ apply_child_layer_patch() {
     .claude/skills \
     2>/dev/null || true
   if ! $cherry_ok; then
+    # Overlay-owned Dockerfiles are full-file rewrites. Upstream FROM bumps
+    # (homepage node:22→24) conflict; mergiraf has no Dockerfile language.
+    # Keep the layer's file when that layer is the one that changed it.
+    if git diff --name-only --diff-filter=U | grep -qx Dockerfile \
+      && git diff --name-only "$old_parent" "$tree_ref" -- | grep -qx Dockerfile; then
+      git checkout --theirs -- Dockerfile
+      git add -- Dockerfile
+      log "Dockerfile conflict: kept ${tree_ref} overlay"
+    fi
     if git diff --name-only --diff-filter=U | grep -q .; then
       try_mergiraf_solve || true
     fi
