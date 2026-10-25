@@ -527,6 +527,46 @@ try_mergiraf_solve() {
   ! git diff --name-only --diff-filter=U | grep -q .
 }
 
+# Overlay lockfiles cannot be unioned. Start from the new parent's lockfile and
+# regenerate so package.json (auto-merged, e.g. 2.7.0 + prom-client) stays consistent.
+resolve_owned_lockfile() {
+  local old_parent=$1
+  local tree_ref=$2
+  local path installer
+
+  for path in pnpm-lock.yaml package-lock.json yarn.lock; do
+    git diff --name-only --diff-filter=U | grep -qx "$path" || continue
+    git diff --name-only "$old_parent" "$tree_ref" -- | grep -qx "$path" || continue
+    git checkout --ours -- "$path"
+    case $path in
+      pnpm-lock.yaml)
+        if command -v pnpm >/dev/null 2>&1; then
+          installer=(pnpm)
+        elif command -v corepack >/dev/null 2>&1; then
+          corepack enable >/dev/null 2>&1 || true
+          corepack prepare pnpm@latest --activate
+          installer=(pnpm)
+        else
+          installer=(npx --yes pnpm)
+        fi
+        "${installer[@]}" install --lockfile-only --ignore-scripts
+        ;;
+      package-lock.json)
+        npm install --package-lock-only --ignore-scripts
+        ;;
+      yarn.lock)
+        if command -v yarn >/dev/null 2>&1; then
+          yarn install --mode=update-lockfile
+        else
+          die "yarn.lock conflicted and yarn is not installed"
+        fi
+        ;;
+    esac
+    git add -- "$path"
+    log "lockfile conflict: regenerated ${path} from merged package.json"
+  done
+}
+
 # Apply the old layer's patch onto the new parent (3-way merge vs the old parent).
 # Do not checkout the old tree — that would revert upstream files to the previous tag.
 apply_child_layer_patch() {
@@ -567,6 +607,7 @@ apply_child_layer_patch() {
       git add -- Dockerfile
       log "Dockerfile conflict: kept ${tree_ref} overlay"
     fi
+    resolve_owned_lockfile "$old_parent" "$tree_ref"
     if git diff --name-only --diff-filter=U | grep -q .; then
       try_mergiraf_solve || true
     fi
