@@ -25,10 +25,11 @@ Publish workflows stay per-fork.
 
 Tag-bump installs **mergiraf**, pushes only after the full local stack, and
 skips the daily cron when `origin/rafaelgaspar` already contains the upstream
-commit. Rebuild success/failure posts to Discord `#forks-tag-bump` via
-secret `DISCORD_WEBHOOK_FORKS_TAG_BUMP` on each fork (incoming webhook). Daily skips stay
-quiet. Fixer restacks leftover conflicts with
-`k3s-home` skill `fix-forks-conflicts`.
+commit. Publish must checkout the restacked `rafaelgaspar` ref (not the
+caller's `github.sha`) and tag from the upstream tag that was rebuilt.
+Rebuild success/failure posts to Discord `#forks-tag-bump` via secret
+`DISCORD_WEBHOOK_FORKS_TAG_BUMP` on each fork (incoming webhook). Daily skips stay
+quiet. Fixer can summarize a failed Actions run; it cannot restack yet.
 
 Members and tag filters: `members.yaml`. Fork workflow for agents:
 [rafaelgaspar-fork](../rafaelgaspar-fork/SKILL.md).

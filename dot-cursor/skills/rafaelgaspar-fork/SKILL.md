@@ -123,6 +123,13 @@ FORK_PACK_SCRIPTS=~/Projects/ThirdParty/fork-pack/scripts \
 Change rebuild/tag-bump **in fork-pack**, not by forking copies in the five
 repos.
 
+Per-fork publish workflows must checkout `${{ inputs.ref || github.sha }}`
+and pass tag-bump's `upstream_tag` into `resolve-integration-tag.sh`.
+`github.event_name == 'workflow_call'` is false when the caller is
+`schedule`, so using that test falls back to `github.sha` from the start
+of the run and tags the previous overlay (supergateway rebuilt 4.2.1 then
+published `v4.2.0-rafaelgaspar.1`).
+
 ## One commit per feat branch
 
 **Always one commit per `feat/*` layer.** Tag-bump passes `--squash` so
