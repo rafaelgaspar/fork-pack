@@ -608,6 +608,12 @@ apply_child_layer_patch() {
       log "Dockerfile conflict: kept ${tree_ref} overlay"
     fi
     resolve_owned_lockfile "$old_parent" "$tree_ref"
+    # Overlay restacks can carry a leftover rebuild.log; the new parent
+    # deleted it. Keep the deletion so the log never re-enters the stack.
+    if git diff --name-only --diff-filter=U | grep -qx rebuild.log; then
+      git rm -f -- rebuild.log >/dev/null
+      log "rebuild.log conflict: dropped leftover log from ${tree_ref}"
+    fi
     if git diff --name-only --diff-filter=U | grep -q .; then
       try_mergiraf_solve || true
     fi
