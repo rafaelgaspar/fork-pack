@@ -17,6 +17,8 @@ Shared workflow for the public application forks. Clone them under
 skills in `dot-cursor/` vendored onto forks as `.cursor/`). Per-fork remotes
 and tag filters: `members.yaml`.
 
+**Upstream PR test coverage:** [docs/feat-upstream-test-coverage.md](https://github.com/rafaelgaspar/fork-pack/blob/main/docs/feat-upstream-test-coverage.md) in fork-pack.
+
 | Fork | Upstream | Ships from `rafaelgaspar` |
 | --- | --- | --- |
 | [homepage](https://github.com/rafaelgaspar/homepage) | [gethomepage/homepage](https://github.com/gethomepage/homepage) | `ghcr.io/rafaelgaspar/homepage` |
