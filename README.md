@@ -25,6 +25,7 @@ forks.
 | `dot-cursor/skills/rafaelgaspar-fork/` | Shared agent skill for fork workflow |
 | `examples/rafaelgaspar-tag-bump.yaml` | Thin per-fork caller (cron + inputs) |
 | `members.yaml` | Fork list, upstream remotes, tag filters |
+| `docs/feat-upstream-test-coverage.md` | Test/PR-body checklist for `feat-upstream/*` on xpra and xpra-html5 |
 
 ## Consume from a fork
 
