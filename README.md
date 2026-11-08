@@ -98,11 +98,22 @@ Or vendor scripts and the skill into the fork:
 ~/Projects/ThirdParty/fork-pack/scripts/install.sh /path/to/fork
 ```
 
-## Tag patterns
+## Tag patterns and `tracks`
 
 Default in `rebuild-rafaelgaspar.sh` is `v` + digits, optionally `X.Y.Z`
 (`v2.5.0` and `v21`). Forks pass `tag_filter` from `members.yaml` so html5
 stays on `^v[0-9]+$`.
+
+`members.yaml` may set **`tracks: tag`** (default) or **`tracks: main`**:
+
+| `tracks` | Daily tag-bump rebuilds onto | Integration release name (`upstream_tag` for publish) |
+| --- | --- | --- |
+| **tag** | Latest upstream **release tag** matching `tag_filter` | That tag (`v6.5.5`, `v21`, …) |
+| **main** | Upstream **default branch tip** (`upstream/master`, etc.) | Still the latest matching **release tag** (e.g. `v21-rafaelgaspar.N`) |
+
+Scheduled runs skip when the rebuild base commit is already an ancestor of
+`rafaelgaspar`. Manual `workflow_dispatch` with an explicit `upstream_tag`
+always rebuilds onto that tag (`tracks` is ignored).
 
 ## Tag-bump merge and Discord
 

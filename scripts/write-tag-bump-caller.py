@@ -18,6 +18,10 @@ if not name:
 
 members = yaml.safe_load((pack / "members.yaml").read_text())["forks"]
 m = members[name]
+tracks = m.get("tracks", "tag")
+if tracks not in ("tag", "main"):
+    sys.exit(f"invalid tracks={tracks!r} for {name} (use tag or main)")
+
 tpl = (pack / "examples" / "rafaelgaspar-tag-bump.yaml").read_text()
 text = (
     tpl.replace("https://github.com/EXAMPLE/upstream.git", m["upstream"])
@@ -26,6 +30,7 @@ text = (
         "tag_filter: '^v[0-9]+\\.[0-9]+\\.[0-9]+$'",
         f"tag_filter: '{m['tag_filter']}'",
     )
+    .replace("tracks: tag", f"tracks: {tracks}")
     .replace("rafaelgaspar-ghcr-publish.yaml", m["publish_workflow"])
 )
 if m["publish_workflow"] == "rafaelgaspar-release.yaml":

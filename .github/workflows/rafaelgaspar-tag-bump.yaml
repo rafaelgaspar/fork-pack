@@ -17,6 +17,11 @@ on:
         description: ERE matching a release tag (e.g. ^v[0-9]+\.[0-9]+\.[0-9]+$ or ^v[0-9]+$)
         required: true
         type: string
+      tracks:
+        description: Rebuild base — tag (latest release tag) or main (upstream default branch tip)
+        required: false
+        type: string
+        default: tag
       upstream_tag:
         description: Explicit upstream tag; empty uses the latest matching git tag
         required: false
@@ -94,33 +99,54 @@ jobs:
             git remote add upstream "${UPSTREAM_URL}"
           fi
 
-      - name: Resolve upstream tag
+      - name: Resolve upstream base
         id: tag
         env:
           INPUT_TAG: ${{ inputs.upstream_tag }}
           TAG_GLOB: ${{ inputs.tag_glob }}
           TAG_FILTER: ${{ inputs.tag_filter }}
+          TRACKS: ${{ inputs.tracks }}
         run: |
           set -euo pipefail
           git fetch upstream --tags --force
+          git fetch upstream --force
           git fetch origin --force --prune
           git fetch origin 'refs/heads/feat/*:refs/remotes/origin/feat/*' || true
 
-          if [[ -n "${INPUT_TAG:-}" ]]; then
-            UPSTREAM_TAG="${INPUT_TAG}"
-          else
-            UPSTREAM_TAG=$(
-              git ls-remote --tags upstream "${TAG_GLOB}" \
-                | awk -F/ '{print $3}' \
-                | sed 's/\^{}//' \
-                | grep -E "${TAG_FILTER}" \
-                | sort -V \
-                | tail -1
-            )
-          fi
+          resolve_latest_tag() {
+            if [[ -n "${INPUT_TAG:-}" ]]; then
+              echo "${INPUT_TAG}"
+              return
+            fi
+            git ls-remote --tags upstream "${TAG_GLOB}" \
+              | awk -F/ '{print $3}' \
+              | sed 's/\^{}//' \
+              | grep -E "${TAG_FILTER}" \
+              | sort -V \
+              | tail -1
+          }
 
+          UPSTREAM_TAG=$(resolve_latest_tag)
           [[ -n "${UPSTREAM_TAG:-}" ]] || { echo "No upstream release tag found"; exit 1; }
           git rev-parse "${UPSTREAM_TAG}^{commit}" >/dev/null
+
+          if [[ "${TRACKS}" == "main" && -z "${INPUT_TAG:-}" ]]; then
+            default_branch=$(
+              git ls-remote --symref upstream HEAD \
+                | awk '/^ref:/ { sub("refs/heads/", "", $2); print $2; exit }'
+            )
+            [[ -n "${default_branch}" ]] || default_branch=master
+            git fetch upstream "${default_branch}"
+            UPSTREAM_REF="upstream/${default_branch}"
+            UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_REF}^{commit}")
+            echo "rebuild_arg=--upstream-ref ${UPSTREAM_REF}" >> "$GITHUB_OUTPUT"
+            echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+            echo "Rebuild onto ${UPSTREAM_REF} (${UPSTREAM_SHA}); integration releases use tag ${UPSTREAM_TAG}"
+          else
+            echo "rebuild_arg=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
+            echo "upstream_sha=$(git rev-parse "${UPSTREAM_TAG}^{commit}")" >> "$GITHUB_OUTPUT"
+            echo "Rebuild onto tag ${UPSTREAM_TAG}"
+          fi
 
           CURRENT_BASE_TAG=""
           if git rev-parse --verify origin/rafaelgaspar >/dev/null 2>&1; then
@@ -133,17 +159,14 @@ jobs:
 
           echo "upstream_tag=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
           echo "current_base_tag=${CURRENT_BASE_TAG}" >> "$GITHUB_OUTPUT"
-          echo "Resolved upstream tag: ${UPSTREAM_TAG}"
-          echo "Current stack base tag: ${CURRENT_BASE_TAG:-unknown}"
 
       - name: Decide whether to rebuild
         id: plan
         env:
           EVENT_NAME: ${{ inputs.event_name || github.event_name }}
-          UPSTREAM_TAG: ${{ steps.tag.outputs.upstream_tag }}
+          UPSTREAM_SHA: ${{ steps.tag.outputs.upstream_sha }}
         run: |
           set -euo pipefail
-          UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_TAG}^{commit}")
           # Skip only when this exact upstream commit is already in the *shipped*
           # pointer. Checking feat/rafaelgaspar hid failed mid-stack rebuilds
           # (ROOT already on T, rafaelgaspar still on the old tip).
@@ -153,10 +176,10 @@ jobs:
             && git rev-parse --verify origin/rafaelgaspar >/dev/null 2>&1 \
             && git merge-base --is-ancestor "$UPSTREAM_SHA" origin/rafaelgaspar; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Scheduled run: ${UPSTREAM_TAG} (${UPSTREAM_SHA}) is already an ancestor of rafaelgaspar; skipping."
+            echo "Scheduled run: ${UPSTREAM_SHA} is already an ancestor of rafaelgaspar; skipping."
           else
             echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "Rebuild ${UPSTREAM_TAG} (${UPSTREAM_SHA})"
+            echo "Rebuild onto ${UPSTREAM_SHA}"
           fi
 
       - name: Install mergiraf
@@ -178,7 +201,12 @@ jobs:
           UPSTREAM_TAG_PATTERN: ${{ inputs.tag_filter }}
         run: |
           chmod +x .fork-pack/scripts/rebuild-rafaelgaspar.sh
-          .fork-pack/scripts/rebuild-rafaelgaspar.sh --dry-run "${{ steps.tag.outputs.upstream_tag }}"
+          REBUILD_ARG="${{ steps.tag.outputs.rebuild_arg }}"
+          if [[ "$REBUILD_ARG" == --upstream-ref* ]]; then
+            .fork-pack/scripts/rebuild-rafaelgaspar.sh --dry-run $REBUILD_ARG
+          else
+            .fork-pack/scripts/rebuild-rafaelgaspar.sh --dry-run "$REBUILD_ARG"
+          fi
 
       - name: Rebuild rafaelgaspar
         id: rebuild
@@ -194,8 +222,14 @@ jobs:
           if [[ "${{ inputs.squash }}" == "true" ]]; then
             extra+=(--squash)
           fi
-          .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push "${{ steps.tag.outputs.upstream_tag }}" \
-            2>&1 | tee rebuild.log
+          REBUILD_ARG="${{ steps.tag.outputs.rebuild_arg }}"
+          if [[ "$REBUILD_ARG" == --upstream-ref* ]]; then
+            .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push $REBUILD_ARG \
+              2>&1 | tee rebuild.log
+          else
+            .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push "$REBUILD_ARG" \
+              2>&1 | tee rebuild.log
+          fi
 
       - name: Record publish intent
         id: publish

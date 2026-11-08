@@ -100,6 +100,10 @@ fork image or release tag is the artifact.
 
 ## Upstream tag bump
 
+`members.yaml` sets **`tracks: tag`** (default) or **`tracks: main`** per fork.
+**tag** rebuilds onto the latest upstream release tag; **main** rebuilds onto the
+upstream default branch tip while publish tags still use the latest release tag.
+
 When upstream publishes a git tag **T** matching `tag_filter` in `members.yaml`
 (a GitHub Release is not required), the fork's thin tag-bump caller runs
 `rafaelgaspar/fork-pack` `rebuild-rafaelgaspar.sh --squash --push`:
