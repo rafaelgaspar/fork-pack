@@ -109,7 +109,7 @@ stays on `^v[0-9]+$`.
 | `tracks` | Daily tag-bump rebuilds onto | Integration release name (`upstream_tag` for publish) |
 | --- | --- | --- |
 | **tag** | Latest upstream **release tag** matching `tag_filter` | That tag (`v6.5.5`, `v21`, …) |
-| **main** | Upstream **default branch tip** (`upstream/master`, etc.) | Still the latest matching **release tag** (e.g. `v21-rafaelgaspar.N`) |
+| **main** | Upstream **default branch tip** (`upstream/master`, etc.) | `v{tree-version}-main-{shortsha}-rafaelgaspar.N` (e.g. `v7.0-main-abc1234-rafaelgaspar.0`, `v22-main-abc1234-rafaelgaspar.0`) |
 
 Scheduled runs skip when the rebuild base commit is already an ancestor of
 `rafaelgaspar`. Manual `workflow_dispatch` with an explicit `upstream_tag`

@@ -139,9 +139,12 @@ jobs:
             git fetch upstream "${default_branch}"
             UPSTREAM_REF="upstream/${default_branch}"
             UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_REF}^{commit}")
+            chmod +x .fork-pack/scripts/upstream-tree-version.sh .fork-pack/scripts/main-integration-base.sh
+            INTEGRATION_BASE=$(.fork-pack/scripts/main-integration-base.sh "${UPSTREAM_SHA}")
+            UPSTREAM_TAG="${INTEGRATION_BASE}"
             echo "rebuild_arg=--upstream-ref ${UPSTREAM_REF}" >> "$GITHUB_OUTPUT"
             echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
-            echo "Rebuild onto ${UPSTREAM_REF} (${UPSTREAM_SHA}); integration releases use tag ${UPSTREAM_TAG}"
+            echo "Rebuild onto ${UPSTREAM_REF} (${UPSTREAM_SHA}); integration base ${INTEGRATION_BASE}"
           else
             echo "rebuild_arg=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
             echo "upstream_sha=$(git rev-parse "${UPSTREAM_TAG}^{commit}")" >> "$GITHUB_OUTPUT"
