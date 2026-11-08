@@ -19,10 +19,18 @@ if not name:
 members = yaml.safe_load((pack / "members.yaml").read_text())["forks"]
 m = members[name]
 tracks = m.get("tracks", "tag")
-if tracks not in ("tag", "main"):
-    sys.exit(f"invalid tracks={tracks!r} for {name} (use tag or main)")
+if tracks not in ("tag", "branch"):
+    sys.exit(f"invalid tracks={tracks!r} for {name} (use tag or branch)")
+branch = m.get("upstream_branch")
+if tracks == "branch" and not branch:
+    sys.exit(f"upstream_branch required when tracks=branch for {name}")
+if tracks == "tag" and branch:
+    sys.exit(f"upstream_branch is only valid with tracks=branch ({name})")
 
 tpl = (pack / "examples" / "rafaelgaspar-tag-bump.yaml").read_text()
+tracks_block = f"      tracks: {tracks}\n"
+if branch:
+    tracks_block += f"      upstream_branch: {branch}\n"
 text = (
     tpl.replace("https://github.com/EXAMPLE/upstream.git", m["upstream"])
     .replace("tag_glob: 'v*.*.*'", f"tag_glob: '{m['tag_glob']}'")
@@ -30,7 +38,7 @@ text = (
         "tag_filter: '^v[0-9]+\\.[0-9]+\\.[0-9]+$'",
         f"tag_filter: '{m['tag_filter']}'",
     )
-    .replace("tracks: tag", f"tracks: {tracks}")
+    .replace("      tracks: tag\n", tracks_block, 1)
     .replace("rafaelgaspar-ghcr-publish.yaml", m["publish_workflow"])
 )
 if m["publish_workflow"] == "rafaelgaspar-release.yaml":

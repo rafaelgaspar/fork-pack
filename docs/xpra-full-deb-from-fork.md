@@ -1,10 +1,14 @@
-# Xpra: full fork debs (tracks main / 7.x)
+# Xpra: full fork debs (`tracks: branch` / `upstream/v7.x`)
 
 ## Problem (legacy)
 
 Older images used **xpra.org** `apt` (e.g. 6.5.6) plus **`xpra-rafaelgaspar-overlay_*`**
-(divert ~20 Python modules + HTML5 www). That cannot track **`tracks: main`** /
-**7.x** coherently.
+(divert ~20 Python modules + HTML5 www). That cannot track **`upstream/v7.x`**
+coherently (master is already 8.x).
+
+**members.yaml** sets `tracks: branch` on **`xpra`** → `upstream_branch: v7.x` and
+**`xpra-html5`** → `upstream_branch: v21.x` (the client line for server 7.x;
+upstream `v7.x` on xpra-html5 is abandoned).
 
 ## Target
 
@@ -14,9 +18,9 @@ Older images used **xpra.org** `apt` (e.g. 6.5.6) plus **`xpra-rafaelgaspar-over
 | Fork HTML5 tree | **Staged into the source tree** before `debuild` (same commit as xpra-html5 integration tag) |
 | Cluster image | **No xpra.org** `xpra-*` packages; **no overlay deb** |
 
-Integration **git tags** stay `v7.0-main-<sha>-rafaelgaspar.N` (or tag-based when `tracks: tag`).
+Integration **git tags** stay `v7.0-<sha>-rafaelgaspar.N` (or tag-based when `tracks: tag`).
 
-**Debian package versions** should use native ordering, e.g. `7.0~main+abc1234.rafaelgaspar.0` (tilde sorts before final releases).
+**Debian package versions** should use native ordering, e.g. `7.0~abc1234.rafaelgaspar.0` (tilde sorts before final releases).
 
 ## Release artifacts (per integration tag)
 
@@ -36,7 +40,7 @@ The overlay-only `.deb` remains in the release workflow for external apt users o
 
 Dockerfile: `ARG XPRA_FORK_VERSION=…` and `install-rafaelgaspar-xpra-debs.sh` (runtime deps such as pulse/cups stay on apt).
 
-Renovate: widen the xpra pin regex to include `~main+` builds when on main-line releases.
+Renovate: pin regex matches branch-line tags with an optional `-<sha>` segment before `-rafaelgaspar.N`.
 
 ## Rollout
 
