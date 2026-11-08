@@ -6,9 +6,9 @@ Older images used **xpra.org** `apt` (e.g. 6.5.6) plus **`xpra-rafaelgaspar-over
 (divert ~20 Python modules + HTML5 www). That cannot track **`upstream/v7.x`**
 coherently (master is already 8.x).
 
-**members.yaml** sets `tracks: branch` and `upstream_branch: v7.x` for both
-`xpra` and `xpra-html5` so daily tag-bump rebuilds onto the v7 maintenance branch,
-not `upstream/master`.
+**members.yaml** sets `tracks: branch` on **`xpra`** → `upstream_branch: v7.x` and
+**`xpra-html5`** → `upstream_branch: v21.x` (the client line for server 7.x;
+upstream `v7.x` on xpra-html5 is abandoned).
 
 ## Target
 
