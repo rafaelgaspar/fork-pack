@@ -23,7 +23,7 @@ Usage: rebuild-rafaelgaspar.sh [options] [<upstream-tag>]
 
 Rebuild the linear feat/* stack and reset rafaelgaspar to the stack tip.
 
-Base is either an upstream release tag (default) or --upstream-ref (tracks: main).
+Base is either an upstream release tag (default) or --upstream-ref (tracks: branch).
 
 Options:
   --upstream-ref    Rebuild onto a git ref (e.g. upstream/master) instead of a tag

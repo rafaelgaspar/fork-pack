@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build git integration base for tracks:main — v{tree-version}-main-{shortsha}.
+# Build git integration base for tracks:branch — v{tree-version}-{shortsha}.
 # Usage: main-integration-base.sh <git-ref>
 set -euo pipefail
 
@@ -8,4 +8,4 @@ script_dir=$(cd "$(dirname "$0")" && pwd)
 
 ver=$("${script_dir}/upstream-tree-version.sh" "$ref")
 short=$(git rev-parse --short=7 "${ref}^{commit}")
-printf 'v%s-main-%s\n' "$ver" "$short"
+printf 'v%s-%s\n' "$ver" "$short"

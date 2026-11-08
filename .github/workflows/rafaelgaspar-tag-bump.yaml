@@ -18,10 +18,15 @@ on:
         required: true
         type: string
       tracks:
-        description: Rebuild base — tag (latest release tag) or main (upstream default branch tip)
+        description: Rebuild base — tag (latest release tag) or branch (upstream_branch required)
         required: false
         type: string
         default: tag
+      upstream_branch:
+        description: Required when tracks is branch (e.g. v7.x, master)
+        required: false
+        type: string
+        default: ''
       upstream_tag:
         description: Explicit upstream tag; empty uses the latest matching git tag
         required: false
@@ -106,6 +111,7 @@ jobs:
           TAG_GLOB: ${{ inputs.tag_glob }}
           TAG_FILTER: ${{ inputs.tag_filter }}
           TRACKS: ${{ inputs.tracks }}
+          UPSTREAM_BRANCH: ${{ inputs.upstream_branch }}
         run: |
           set -euo pipefail
           git fetch upstream --tags --force
@@ -114,10 +120,6 @@ jobs:
           git fetch origin 'refs/heads/feat/*:refs/remotes/origin/feat/*' || true
 
           resolve_latest_tag() {
-            if [[ -n "${INPUT_TAG:-}" ]]; then
-              echo "${INPUT_TAG}"
-              return
-            fi
             git ls-remote --tags upstream "${TAG_GLOB}" \
               | awk -F/ '{print $3}' \
               | sed 's/\^{}//' \
@@ -126,18 +128,17 @@ jobs:
               | tail -1
           }
 
-          UPSTREAM_TAG=$(resolve_latest_tag)
-          [[ -n "${UPSTREAM_TAG:-}" ]] || { echo "No upstream release tag found"; exit 1; }
-          git rev-parse "${UPSTREAM_TAG}^{commit}" >/dev/null
-
-          if [[ "${TRACKS}" == "main" && -z "${INPUT_TAG:-}" ]]; then
-            default_branch=$(
-              git ls-remote --symref upstream HEAD \
-                | awk '/^ref:/ { sub("refs/heads/", "", $2); print $2; exit }'
-            )
-            [[ -n "${default_branch}" ]] || default_branch=master
-            git fetch upstream "${default_branch}"
-            UPSTREAM_REF="upstream/${default_branch}"
+          if [[ -n "${INPUT_TAG:-}" ]]; then
+            UPSTREAM_TAG="${INPUT_TAG}"
+            git rev-parse "${UPSTREAM_TAG}^{commit}" >/dev/null
+            echo "rebuild_arg=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
+            echo "upstream_sha=$(git rev-parse "${UPSTREAM_TAG}^{commit}")" >> "$GITHUB_OUTPUT"
+            echo "Rebuild onto tag ${UPSTREAM_TAG}"
+          elif [[ "${TRACKS}" == "branch" ]]; then
+            [[ -n "${UPSTREAM_BRANCH:-}" ]] \
+              || { echo "tracks=branch requires upstream_branch (e.g. v7.x)"; exit 1; }
+            git fetch upstream "${UPSTREAM_BRANCH}"
+            UPSTREAM_REF="upstream/${UPSTREAM_BRANCH}"
             UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_REF}^{commit}")
             chmod +x .fork-pack/scripts/upstream-tree-version.sh .fork-pack/scripts/main-integration-base.sh
             INTEGRATION_BASE=$(.fork-pack/scripts/main-integration-base.sh "${UPSTREAM_SHA}")
@@ -145,17 +146,23 @@ jobs:
             echo "rebuild_arg=--upstream-ref ${UPSTREAM_REF}" >> "$GITHUB_OUTPUT"
             echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
             echo "Rebuild onto ${UPSTREAM_REF} (${UPSTREAM_SHA}); integration base ${INTEGRATION_BASE}"
-          else
+          elif [[ "${TRACKS}" == "tag" ]]; then
+            UPSTREAM_TAG=$(resolve_latest_tag)
+            [[ -n "${UPSTREAM_TAG:-}" ]] || { echo "No upstream release tag found"; exit 1; }
+            git rev-parse "${UPSTREAM_TAG}^{commit}" >/dev/null
             echo "rebuild_arg=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
             echo "upstream_sha=$(git rev-parse "${UPSTREAM_TAG}^{commit}")" >> "$GITHUB_OUTPUT"
             echo "Rebuild onto tag ${UPSTREAM_TAG}"
+          else
+            echo "invalid tracks=${TRACKS} (use tag or branch)" >&2
+            exit 1
           fi
 
           CURRENT_BASE_TAG=""
           if git rev-parse --verify origin/rafaelgaspar >/dev/null 2>&1; then
             CURRENT_BASE_TAG=$(
               git tag -l "${TAG_GLOB}" --merged origin/rafaelgaspar \
-                | grep -E "${TAG_FILTER}" \
+                | { grep -E "${TAG_FILTER}" || true; } \
                 | sort -V | tail -1
             )
           fi

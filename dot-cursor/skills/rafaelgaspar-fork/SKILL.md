@@ -100,10 +100,10 @@ fork image or release tag is the artifact.
 
 ## Upstream tag bump
 
-`members.yaml` sets **`tracks: tag`** (default) or **`tracks: main`** per fork.
-**tag** rebuilds onto the latest upstream release tag; **main** rebuilds onto the
-upstream default branch tip. Publish tags are then
-`v{tree-version}-main-{shortsha}-rafaelgaspar.N` (overlay/deb version matches).
+`members.yaml` sets **`tracks: tag`** (default) or **`tracks: branch`**.
+**tag** → latest upstream release tag; **branch** → **`upstream_branch`** (required,
+e.g. `v7.x` for Xpra 7). **branch** integration tags use
+`v{tree-version}-{shortsha}-rafaelgaspar.N`.
 
 When upstream publishes a git tag **T** matching `tag_filter` in `members.yaml`
 (a GitHub Release is not required), the fork's thin tag-bump caller runs
