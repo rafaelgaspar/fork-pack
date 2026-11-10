@@ -7,8 +7,7 @@ Older images used **xpra.org** `apt` (e.g. 6.5.6) plus **`xpra-rafaelgaspar-over
 coherently (master is already 8.x).
 
 **members.yaml** sets `tracks: branch` on **`xpra`** → `upstream_branch: v7.x` and
-**`xpra-html5`** → `upstream_branch: v21.x` (the client line for server 7.x;
-upstream `v7.x` on xpra-html5 is abandoned).
+**`xpra-html5`** → `upstream_branch: master` (current html5 client; merged upstream features).
 
 ## Target
 

@@ -26,8 +26,8 @@ forks:
     tag_glob: 'v[0-9]*'
     tag_filter: '^v[0-9]+$'
     tracks: branch
-    # Server 7.x ships html5 v21 client; upstream v7.x on xpra-html5 is stale (~2023).
-    upstream_branch: v21.x
+    # Track upstream development (merged features); branch is `master` on Xpra-org.
+    upstream_branch: master
     publish_workflow: rafaelgaspar-release.yaml
   otbr-insight:
     repo: rafaelgaspar/otbr-insight

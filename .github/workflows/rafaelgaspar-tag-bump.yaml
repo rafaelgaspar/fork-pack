@@ -227,6 +227,7 @@ jobs:
           UPSTREAM_TAG_PATTERN: ${{ inputs.tag_filter }}
         run: |
           set -euo pipefail
+          rm -f rebuild.log
           chmod +x .fork-pack/scripts/rebuild-rafaelgaspar.sh
           extra=()
           if [[ "${{ inputs.squash }}" == "true" ]]; then
