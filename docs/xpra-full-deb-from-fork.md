@@ -17,9 +17,9 @@ coherently (master is already 8.x).
 | Fork HTML5 tree | **Staged into the source tree** before `debuild` (same commit as xpra-html5 integration tag) |
 | Cluster image | **No xpra.org** `xpra-*` packages; **no overlay deb** |
 
-Integration **git tags** stay `v7.0-<sha>-rafaelgaspar.N` (or tag-based when `tracks: tag`).
+Integration **git tags** keep a hyphen (`v7.0-<sha>-rafaelgaspar.N`, or the upstream tag when `tracks: tag`). `~` is a git rev-parse operator, so it must not appear in tag names.
 
-**Debian package versions** should use native ordering, e.g. `7.0~abc1234.rafaelgaspar.0` (tilde sorts before final releases). **`deb-manifest.txt`** lists the **`.deb` filenames** on the release (archive form: `7.0.abc1234…`, not `7.0~…`); k3s-home maps manifest lines to assets via `tr '~' '.'` when needed.
+**Debian package versions and `.deb` filenames** use a tilde, e.g. `7.0~abc1234.rafaelgaspar.0` (sorts before the next upstream). **`deb-manifest.txt`** lists those filenames as built (with `~`), not a dotted rewrite.
 
 ## Release artifacts (per integration tag)
 
