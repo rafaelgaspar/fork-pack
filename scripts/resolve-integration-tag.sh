@@ -11,6 +11,8 @@
 # resetting N per sha lets apt/reprepro treat a new hash as older.
 set -euo pipefail
 
+git fetch origin --tags --force >/dev/null 2>&1 || true
+
 tag_glob="${1:?tag glob}"
 tag_filter="${2:?tag filter regex}"
 explicit_base="${3:-}"
@@ -27,6 +29,18 @@ package_upstream_version() {
   printf '%s\n' "${base#v}"
 }
 
+# Integration tags are either v{ver}-rafaelgaspar.N (release-tag forks) or
+# v{ver}-{sha}-rafaelgaspar.N (tracks: branch). Both must share one .N counter.
+list_integration_tags() {
+  local ver=$1
+  local n=${2:-}
+  if [[ -n $n ]]; then
+    git tag -l "v${ver}-rafaelgaspar.${n}" "v${ver}-*-rafaelgaspar.${n}"
+  else
+    git tag -l "v${ver}-rafaelgaspar.*" "v${ver}-*-rafaelgaspar.*"
+  fi
+}
+
 # Highest rafaelgaspar.N among every sha of this upstream version (7.0, …).
 global_integration_n() {
   local ver=$1
@@ -38,12 +52,30 @@ global_integration_n() {
     if (( n > max )); then
       max=$n
     fi
-  done < <(git tag -l "v${ver}-*-rafaelgaspar."*)
+  done < <(list_integration_tags "$ver")
   printf '%s\n' "$max"
+}
+
+# v{ver}-{shortsha} from merge-base with upstream (html5 master/main, xpra v7.x).
+# Version comes from the tree (html5 setup.py VERSION=22), not from v21 git tags.
+infer_branch_base() {
+  local uref merge script_dir
+  script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  git remote get-url upstream >/dev/null 2>&1 || return 1
+  git fetch upstream --prune >/dev/null 2>&1 || true
+  for uref in upstream/master upstream/main upstream/v7.x; do
+    git rev-parse --verify --quiet "${uref}^{commit}" >/dev/null || continue
+    merge=$(git merge-base HEAD "$uref") || continue
+    "${script_dir}/branch-integration-base.sh" "$merge"
+    return 0
+  done
+  return 1
 }
 
 if [[ -n $explicit_base ]]; then
   base_tag=$explicit_base
+elif [[ $tag_filter == '^v[0-9]+$' ]] && base_tag=$(infer_branch_base); then
+  :
 else
   base_tag=$(git tag -l "$tag_glob" --merged HEAD | grep -E "$tag_filter" | sort -V | tail -1 || true)
   # stacks rebuilt onto a branch tip (tracks: branch) do not contain the
@@ -63,7 +95,7 @@ else
   fi
 fi
 [[ -n "${base_tag}" ]] || { echo "No upstream base tag found on branch" >&2; exit 1; }
-if [[ -n $explicit_base ]] && echo "${base_tag}" | grep -Eq "${branch_base_re}"; then
+if echo "${base_tag}" | grep -Eq "${branch_base_re}"; then
   :
 elif ! echo "${base_tag}" | grep -Eq "${tag_filter}"; then
   echo "error: base tag ${base_tag} does not match ${tag_filter}" >&2
@@ -85,7 +117,7 @@ if (( max_n >= 0 )); then
       skip_release=true
       break
     fi
-  done < <(git tag -l "v${deb_upstream}-*-rafaelgaspar.${max_n}")
+  done < <(list_integration_tags "$deb_upstream" "$max_n")
 fi
 
 if [[ $skip_release != true ]]; then
