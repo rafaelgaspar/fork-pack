@@ -733,6 +733,10 @@ fi
 log "integration branch: ${INTEGRATION_BRANCH}"
 log "upstream base: ${UPSTREAM_BASE_LABEL} (${UPSTREAM_SHA})"
 
+# tag-bump tees to rebuild.log in CI; drop it so checkouts are not blocked.
+git rm -f --ignore-unmatch rebuild.log >/dev/null 2>&1 || true
+rm -f rebuild.log
+
 discover_stack
 log "stack order (${#STACK[@]} branches):"
 for branch in "${STACK[@]}"; do

@@ -225,9 +225,10 @@ jobs:
           FORK_PACK_SCRIPTS: ${{ github.workspace }}/.fork-pack/scripts
           CANONICAL_REBUILD_SCRIPT: ${{ github.workspace }}/.fork-pack/scripts/rebuild-rafaelgaspar.sh
           UPSTREAM_TAG_PATTERN: ${{ inputs.tag_filter }}
+          REBUILD_LOG: ${{ runner.temp }}/rebuild.log
         run: |
           set -euo pipefail
-          rm -f rebuild.log
+          rm -f rebuild.log "${REBUILD_LOG}"
           chmod +x .fork-pack/scripts/rebuild-rafaelgaspar.sh
           extra=()
           if [[ "${{ inputs.squash }}" == "true" ]]; then
@@ -236,10 +237,10 @@ jobs:
           REBUILD_ARG="${{ steps.tag.outputs.rebuild_arg }}"
           if [[ "$REBUILD_ARG" == --upstream-ref* ]]; then
             .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push $REBUILD_ARG \
-              2>&1 | tee rebuild.log
+              2>&1 | tee "${REBUILD_LOG}"
           else
             .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push "$REBUILD_ARG" \
-              2>&1 | tee rebuild.log
+              2>&1 | tee "${REBUILD_LOG}"
           fi
 
       - name: Record publish intent
@@ -258,6 +259,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           UPSTREAM_TAG: ${{ steps.tag.outputs.upstream_tag }}
           OUTCOME: ${{ steps.rebuild.outcome }}
+          REBUILD_LOG: ${{ runner.temp }}/rebuild.log
         run: |
           set -euo pipefail
           if [[ -z "${WEBHOOK:-}" ]]; then
@@ -273,7 +275,7 @@ jobs:
           tag = os.environ["UPSTREAM_TAG"]
           ok = os.environ["OUTCOME"] == "success"
           conflicts = ""
-          log = pathlib.Path("rebuild.log")
+          log = pathlib.Path(os.environ.get("REBUILD_LOG", "rebuild.log"))
           if log.is_file():
               for line in log.read_text(errors="replace").splitlines():
                   if line.startswith("unresolved conflicts:"):
