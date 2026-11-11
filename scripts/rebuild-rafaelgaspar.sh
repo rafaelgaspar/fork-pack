@@ -309,6 +309,16 @@ drop_ci_checkout_artifacts() {
   git rm -f --ignore-unmatch rebuild.log >/dev/null 2>&1 || true
 }
 
+ensure_claude_skills_if_absent() {
+  # xpra (and any future member) already ships .claude/skills; do not replace
+  # that tree with a symlink to the fork overlay.
+  if [[ -e .claude/skills || -L .claude/skills ]]; then
+    return 0
+  fi
+  mkdir -p .claude
+  ln -s ../.cursor/skills .claude/skills
+}
+
 ensure_gitignore_fork_block() {
   local tree_ref=$1
   local block
@@ -382,7 +392,7 @@ apply_root_layer_tree() {
 
   mapfile -t paths < <(
     git ls-tree -r --name-only "$tree_ref" \
-      | grep -E '^(\.github/(scripts/|workflows/rafaelgaspar-)|\.cursor/skills|\.claude/skills|packaging/debian/(build-rafaelgaspar-|publish-apt-|verify-forky-))' \
+      | grep -E '^(\.github/(scripts/|workflows/rafaelgaspar-)|\.cursor/skills|packaging/debian/(build-rafaelgaspar-|publish-apt-|verify-forky-))' \
       || true
   )
   if ((${#paths[@]} > 0)); then
@@ -400,6 +410,7 @@ apply_root_layer_tree() {
   ensure_gitignore_fork_block "$tree_ref"
   ensure_readme_fork_section "$tree_ref"
   drop_ci_checkout_artifacts
+  ensure_claude_skills_if_absent
   git add -A
 }
 

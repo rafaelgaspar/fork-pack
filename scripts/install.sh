@@ -60,8 +60,9 @@ if [[ ! -e ${dest}/.cursor/skills/README.md ]]; then
   cat >"${dest}/.cursor/skills/README.md" <<'EOF'
 # Agent skills
 
-When vendored into a fork, `.claude/skills` is a symlink to `.cursor/skills`.
-Edit and commit under `.cursor/skills/` only.
+If upstream has no `.claude/skills` directory, that path is a symlink to
+`.cursor/skills`. If upstream already ships skills, leave that tree in place.
+Edit the fork skill under `.cursor/skills/` only.
 
 Shared skill source: `rafaelgaspar/fork-pack` `dot-cursor/skills/`.
 

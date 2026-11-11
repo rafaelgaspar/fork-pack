@@ -6,7 +6,8 @@ Task-specific runbooks for coding agents. Each skill is a directory with `SKILL.
 This pack keeps skills in `dot-cursor/skills` so Cursor does not load them as
 project skills for fork-pack itself. `scripts/install.sh` copies
 `rafaelgaspar-fork` onto forks as `.cursor/skills/rafaelgaspar-fork`.
-On a fork, `.claude/skills` is a symlink to `.cursor/skills`.
+If upstream has no `.claude/skills` directory, install creates a symlink to
+`.cursor/skills`. If upstream already ships skills (xpra), those stay.
 
 ## Index
 
