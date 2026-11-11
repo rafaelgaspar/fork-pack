@@ -47,9 +47,8 @@ conflict on workflow YAML.
 `packaging/debian/build-rafaelgaspar-xpra-for-forky.sh`,
 `packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`, overlay deb
 packaging) lives **only** on `feat/rafaelgaspar`. Child `feat/*` commits must
-be product features only — no new deb/apt scripts or release-workflow build
-steps on feature layers (fix during restack if they leak, e.g. `feat/overlay-files`,
-`feat/debian-forky-integration` on xpra).
+be product features only — no deb/apt scripts or release-workflow build steps on
+child layers.
 
 ## Stacked feat branches (git is the source of truth)
 
