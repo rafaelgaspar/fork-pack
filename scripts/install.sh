@@ -15,6 +15,11 @@ mkdir -p \
 
 cp -a "${pack}/scripts/rebuild-rafaelgaspar.sh" "${dest}/.github/scripts/"
 cp -a "${pack}/scripts/resolve-integration-tag.sh" "${dest}/.github/scripts/"
+if [[ -d "${pack}/scripts/debian" ]]; then
+  mkdir -p "${dest}/.github/scripts/debian"
+  cp -a "${pack}/scripts/debian/"*.sh "${dest}/.github/scripts/debian/"
+  chmod +x "${dest}/.github/scripts/debian/"*.sh
+fi
 chmod +x "${dest}/.github/scripts/"*.sh
 
 rm -f "${dest}/.github/workflows/rafaelgaspar-tag-bump-reusable.yaml"

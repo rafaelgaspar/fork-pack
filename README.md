@@ -21,6 +21,9 @@ forks.
 |---|---|
 | `scripts/rebuild-rafaelgaspar.sh` | Rebuild linear `feat/*` on an upstream tag; point `rafaelgaspar` at the tip |
 | `scripts/resolve-integration-tag.sh` | Pick `v{base}-rafaelgaspar.{N}` for a release |
+| `scripts/debian/publish-apt-repo.sh` | reprepro apt tree for GitHub Pages |
+| `scripts/debian/publish-apt-to-github-pages.sh` | Push apt tree to `gh-pages` from CI |
+| `docs/debian-apt-github-pages.md` | Apt-on-Pages wiring; deb **build** scripts live in xpra / xpra-html5 |
 | `.github/workflows/rafaelgaspar-tag-bump.yaml` | Reusable tag-bump (`workflow_call` only; forks `uses:` this file) |
 | `dot-cursor/skills/rafaelgaspar-fork/` | Shared agent skill for fork workflow |
 | `examples/rafaelgaspar-tag-bump.yaml` | Thin per-fork caller (cron + inputs) |
