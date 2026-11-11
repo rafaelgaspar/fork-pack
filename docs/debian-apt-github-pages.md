@@ -63,7 +63,7 @@ Example:
 deb [signed-by=/usr/share/keyrings/rafaelgaspar-xpra-html5.gpg] https://rafaelgaspar.github.io/xpra-html5/apt forky main
 ```
 
-Set `APT_ARCHITECTURES=amd64 all` so **all** arch packages (html5) publish correctly.
+Leave `APT_ARCHITECTURES` as real arches (`amd64`). reprepro rejects `all` in `Architectures:`; `Architecture: all` debs (html5) still publish under those arches.
 
 ## xpra server integration
 
