@@ -222,7 +222,7 @@ squash_layer() {
     git log --reverse --format='- %s' "${parent_ref}..HEAD"
   } >"$msg_file"
   git reset --soft "$parent_ref"
-  git commit -S -F "$msg_file"
+  git commit -F "$msg_file"
   rm -f "$msg_file"
 }
 
@@ -259,7 +259,7 @@ install_canonical_script() {
     return 0
   fi
   if ! git diff --cached --quiet; then
-    git commit --amend --no-edit -n -S
+    git commit --amend --no-edit
   fi
 }
 
@@ -285,17 +285,17 @@ finalize_layer_commit() {
   desired=$(pick_layer_subject "$branch" "$source_ref" "$parent_ref")
   current=$(git log -1 --format=%s)
   if [[ $current != "$desired" ]]; then
-    git commit --amend -m "$desired" -n -S
+    git commit --amend -m "$desired"
   fi
 }
 
 commit_layer() {
   local message=$1
   if git diff --cached --quiet && git diff --quiet; then
-    git commit --allow-empty -S -m "$message"
+    git commit --allow-empty -m "$message"
   else
     git add -A
-    git commit -S -m "$message"
+    git commit -m "$message"
   fi
 }
 
