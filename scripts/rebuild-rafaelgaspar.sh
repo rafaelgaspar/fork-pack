@@ -232,6 +232,15 @@ install_canonical_script() {
     if [[ -f .github/workflows/rafaelgaspar-tag-bump-reusable.yaml ]]; then
       git rm -f --ignore-unmatch .github/workflows/rafaelgaspar-tag-bump-reusable.yaml
     fi
+    # Apt helpers only on forks that already ship a forky deb build script.
+    if [[ -d $dir/debian ]] && compgen -G "packaging/debian/build-rafaelgaspar-*" >/dev/null; then
+      mkdir -p .github/scripts/debian
+      cp -a "$dir"/debian/*.sh .github/scripts/debian/
+      chmod +x .github/scripts/debian/*.sh
+      git add .github/scripts/debian
+    else
+      git rm -rf --ignore-unmatch .github/scripts/debian >/dev/null 2>&1 || true
+    fi
   elif [[ -n $script_path && -f $script_path ]]; then
     cp "$script_path" .github/scripts/rebuild-rafaelgaspar.sh
     chmod +x .github/scripts/rebuild-rafaelgaspar.sh
@@ -272,6 +281,7 @@ finalize_layer_commit() {
 
 commit_layer() {
   local message=$1
+  drop_ci_checkout_artifacts
   if git diff --cached --quiet && git diff --quiet; then
     git commit --allow-empty -m "$message"
   else
@@ -292,14 +302,28 @@ disable_upstream_workflows() {
   done
 }
 
+drop_ci_checkout_artifacts() {
+  # Tag-bump checks out fork-pack to .fork-pack; never commit that gitlink
+  # or the rebuild tee log.
+  git rm -f --ignore-unmatch --cached .fork-pack >/dev/null 2>&1 || true
+  git rm -f --ignore-unmatch rebuild.log >/dev/null 2>&1 || true
+}
+
 ensure_gitignore_fork_block() {
   local tree_ref=$1
   local block
   [[ -f .gitignore ]] || touch .gitignore
-  grep -q '# agent skills' .gitignore && return 0
-  block=$(git show "${tree_ref}:.gitignore" 2>/dev/null | awk '/# agent skills/,0') || return 0
-  [[ -n $block ]] || return 0
-  printf '\n%s\n' "$block" >> .gitignore
+  if ! grep -q '# agent skills' .gitignore; then
+    block=$(git show "${tree_ref}:.gitignore" 2>/dev/null | awk '/# agent skills/,0') || true
+    if [[ -n $block ]]; then
+      printf '\n%s\n' "$block" >> .gitignore
+    fi
+  fi
+  if ! grep -Eq '^(\.fork-pack/?|/\.fork-pack/?)$' .gitignore; then
+    printf '\n# fork-pack CI checkout and tag-bump log (never commit)\n.fork-pack/\nrebuild.log\n' >> .gitignore
+  elif ! grep -Eq '^(/)?rebuild\.log$' .gitignore && ! grep -Eq '^\*\.log$' .gitignore; then
+    printf 'rebuild.log\n' >> .gitignore
+  fi
 }
 
 ensure_readme_fork_section() {
@@ -358,7 +382,7 @@ apply_root_layer_tree() {
 
   mapfile -t paths < <(
     git ls-tree -r --name-only "$tree_ref" \
-      | grep -E '^(\.github/(scripts/|workflows/rafaelgaspar-)|\.cursor/skills|\.claude/skills|packaging/(rafaelgaspar-overlay|debian/(build-rafaelgaspar-|publish-apt-|verify-forky-)))' \
+      | grep -E '^(\.github/(scripts/|workflows/rafaelgaspar-)|\.cursor/skills|\.claude/skills|packaging/debian/(build-rafaelgaspar-|publish-apt-|verify-forky-))' \
       || true
   )
   if ((${#paths[@]} > 0)); then
@@ -375,6 +399,7 @@ apply_root_layer_tree() {
   disable_upstream_workflows
   ensure_gitignore_fork_block "$tree_ref"
   ensure_readme_fork_section "$tree_ref"
+  drop_ci_checkout_artifacts
   git add -A
 }
 
@@ -629,6 +654,7 @@ apply_child_layer_patch() {
     fi
     git cherry-pick --quit >/dev/null 2>&1 || true
   fi
+  drop_ci_checkout_artifacts
   git add -A
 }
 

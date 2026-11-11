@@ -34,8 +34,9 @@ Integration releases also update an **apt repository** on GitHub Pages (`gh-page
 
 `deb [signed-by=/usr/share/keyrings/rafaelgaspar-xpra.gpg] https://rafaelgaspar.github.io/xpra/apt forky main`
 
-The overlay-only `.deb` remains in the release workflow for external apt users only;
-**k3s-home does not use it.**
+The old `xpra-rafaelgaspar-overlay` package (xpra.org 6.x + diverted Python
+modules) is **retired**. v7.x integration releases ship only the full forky
+deb set. Existing 6.5.x overlay GitHub releases stay as historical artifacts.
 
 ## k3s-home
 

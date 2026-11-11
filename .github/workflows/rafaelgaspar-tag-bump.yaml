@@ -140,8 +140,8 @@ jobs:
             git fetch upstream "${UPSTREAM_BRANCH}"
             UPSTREAM_REF="upstream/${UPSTREAM_BRANCH}"
             UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_REF}^{commit}")
-            chmod +x .fork-pack/scripts/upstream-tree-version.sh .fork-pack/scripts/main-integration-base.sh
-            INTEGRATION_BASE=$(.fork-pack/scripts/main-integration-base.sh "${UPSTREAM_SHA}")
+            chmod +x .fork-pack/scripts/upstream-tree-version.sh .fork-pack/scripts/branch-integration-base.sh
+            INTEGRATION_BASE=$(.fork-pack/scripts/branch-integration-base.sh "${UPSTREAM_SHA}")
             UPSTREAM_TAG="${INTEGRATION_BASE}"
             echo "rebuild_arg=--upstream-ref ${UPSTREAM_REF}" >> "$GITHUB_OUTPUT"
             echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"

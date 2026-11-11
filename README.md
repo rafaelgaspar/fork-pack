@@ -8,7 +8,7 @@ Shared GitOps files for the public `rafaelgaspar/*` application forks
 [otbr-insight](https://github.com/rafaelgaspar/otbr-insight)).
 
 This repo is the source of truth for stack rebuild and tag-bump. Per-fork
-publish workflows (GHCR vs overlay `.deb` vs HTML5 tarball) stay in the forks.
+publish workflows (GHCR vs full `.deb` set vs HTML5 tarball) stay in the forks.
 
 Reusable tag-bump lives in `.github/workflows` (`workflow_call` only, so it
 does not run on this repo). Cursor skills stay in `dot-cursor/` so they do
@@ -21,20 +21,27 @@ forks.
 |---|---|
 | `scripts/rebuild-rafaelgaspar.sh` | Rebuild linear `feat/*` on an upstream tag; point `rafaelgaspar` at the tip |
 | `scripts/resolve-integration-tag.sh` | Pick `v{base}-rafaelgaspar.{N}` for a release |
+| `scripts/branch-integration-base.sh` | `v{tree-version}-{shortsha}` name for `tracks: branch` |
+| `scripts/upstream-tree-version.sh` | Read upstream VERSION/`__version__` from a tree |
+| `scripts/write-tag-bump-caller.py` | Fill `examples/rafaelgaspar-tag-bump.yaml` from `members.yaml` |
+| `scripts/install.sh` | Vendor scripts + skill onto a fork (debian helpers only for xpra / xpra-html5) |
 | `scripts/debian/publish-apt-repo.sh` | reprepro apt tree for GitHub Pages |
 | `scripts/debian/publish-apt-to-github-pages.sh` | Push apt tree to `gh-pages` from CI |
 | `docs/debian-apt-github-pages.md` | Apt-on-Pages wiring; deb **build** scripts live in xpra / xpra-html5 |
+| `docs/xpra-full-deb-from-fork.md` | Xpra `tracks: branch` / full forky debs (no overlay package) |
+| `docs/feat-upstream-test-coverage.md` | Test/PR-body checklist for `feat-upstream/*` on xpra and xpra-html5 |
 | `.github/workflows/rafaelgaspar-tag-bump.yaml` | Reusable tag-bump (`workflow_call` only; forks `uses:` this file) |
 | `dot-cursor/skills/rafaelgaspar-fork/` | Shared agent skill for fork workflow |
+| `dot-cursor/skills/fork-pack/` | Skill for changing this pack |
 | `examples/rafaelgaspar-tag-bump.yaml` | Thin per-fork caller (cron + inputs) |
 | `members.yaml` | Fork list, upstream remotes, tag filters |
-| `docs/feat-upstream-test-coverage.md` | Test/PR-body checklist for `feat-upstream/*` on xpra and xpra-html5 |
 
 ## Consume from a fork
 
 Each fork keeps a thin caller that `uses:` this repo’s reusable workflow.
-Publish workflows stay per-fork. Tag-bump still checkouts this repo for the
-rebuild scripts.
+Publish workflows stay per-fork. Tag-bump and publish check out this repo for
+the rebuild and `resolve-integration-tag.sh` scripts (do not rely on stale
+vendored copies).
 
 ```yaml
 # .github/workflows/rafaelgaspar-tag-bump.yaml

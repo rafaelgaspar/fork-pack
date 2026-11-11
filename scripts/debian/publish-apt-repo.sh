@@ -14,7 +14,7 @@
 #   APT_DESCRIPTION             (optional; defaults from APT_LABEL + suite)
 #   APT_ARCHITECTURES           (default: amd64; reprepro forbids "all")
 #   APT_COMPONENTS              (default: main)
-#   APT_GPG_ASC_FILENAME        (default: rafaelgaspar-apt.gpg.asc)
+#   APT_GPG_ASC_FILENAME        (required when signing; e.g. rafaelgaspar-xpra.gpg.asc)
 #   APT_DEB_SKIP_PATTERN        (grep -E; default: xpra-build-deps_)
 #   APT_REPO_SIGNING, APT_SIGN_KEY_ID, APT_REPO_GPG_PUBLIC_ARMOR — signing (CI)
 set -euo pipefail
@@ -37,7 +37,7 @@ done
 ARCHITECTURES="${_apt_filtered[*]}"
 unset _apt_arches _apt_filtered _a
 COMPONENTS="${APT_COMPONENTS:-main}"
-GPG_ASC="${APT_GPG_ASC_FILENAME:-rafaelgaspar-apt.gpg.asc}"
+GPG_ASC="${APT_GPG_ASC_FILENAME:-}"
 SKIP_PATTERN="${APT_DEB_SKIP_PATTERN:-xpra-build-deps_}"
 DESCRIPTION="${APT_DESCRIPTION:-${LABEL} for Debian ${SUITE}}"
 
@@ -45,11 +45,12 @@ DESCRIPTION="${APT_DESCRIPTION:-${LABEL} for Debian ${SUITE}}"
 mkdir -p "$REPO_DIR"
 
 # Snapshot replace: drop the previous reprepro tree and leftover public-key
-# filenames (xpra used to write rafaelgaspar-apt.gpg.asc and keep
-# rafaelgaspar-xpra.gpg.asc).
+# filenames (xpra used to also write rafaelgaspar-apt.gpg.asc).
 shopt -s nullglob
 for leftover in "$REPO_DIR"/*.gpg.asc; do
-  [[ $(basename "$leftover") == "$GPG_ASC" ]] && continue
+  if [[ -n "$GPG_ASC" && $(basename "$leftover") == "$GPG_ASC" ]]; then
+    continue
+  fi
   rm -f "$leftover"
 done
 rm -rf "$REPO_DIR/db" "$REPO_DIR/dists" "$REPO_DIR/pool" "$REPO_DIR/lists" \
@@ -102,6 +103,7 @@ done
 [[ "$count" -gt 0 ]] || { echo "no debs published under $DEB_DIR" >&2; exit 1; }
 
 if [[ -n "${APT_SIGN_KEY_ID:-}" && -n "${APT_REPO_GPG_PUBLIC_ARMOR:-}" ]]; then
+  [[ -n "$GPG_ASC" ]] || { echo "APT_GPG_ASC_FILENAME required when signing" >&2; exit 1; }
   printf '%s\n' "$APT_REPO_GPG_PUBLIC_ARMOR" >"${REPO_DIR}/${GPG_ASC}"
 fi
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build git integration base for tracks:branch — v{tree-version}-{shortsha}.
-# Usage: main-integration-base.sh <git-ref>
+# Usage: branch-integration-base.sh <git-ref>
 set -euo pipefail
 
 ref=${1:?git ref required}

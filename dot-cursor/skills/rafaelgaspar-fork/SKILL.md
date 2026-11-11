@@ -23,7 +23,7 @@ and tag filters: `members.yaml`.
 | --- | --- | --- |
 | [homepage](https://github.com/rafaelgaspar/homepage) | [gethomepage/homepage](https://github.com/gethomepage/homepage) | `ghcr.io/rafaelgaspar/homepage` |
 | [supergateway](https://github.com/rafaelgaspar/supergateway) | [supercorp-ai/supergateway](https://github.com/supercorp-ai/supergateway) | `ghcr.io/rafaelgaspar/supergateway` |
-| [xpra](https://github.com/rafaelgaspar/xpra) | [Xpra-org/xpra](https://github.com/Xpra-org/xpra) | GitHub release: full `.deb` set + `deb-manifest.txt` via `packaging/debian/build-rafaelgaspar-xpra-for-forky.sh`; overlay `.deb` optional for apt-only consumers |
+| [xpra](https://github.com/rafaelgaspar/xpra) | [Xpra-org/xpra](https://github.com/Xpra-org/xpra) | GitHub release: full `.deb` set + `deb-manifest.txt` via `packaging/debian/build-rafaelgaspar-xpra-for-forky.sh` |
 | [xpra-html5](https://github.com/rafaelgaspar/xpra-html5) | [Xpra-org/xpra-html5](https://github.com/Xpra-org/xpra-html5) | Tarball + `packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`; apt via [fork-pack](https://github.com/rafaelgaspar/fork-pack/blob/main/docs/debian-apt-github-pages.md) |
 | [otbr-insight](https://github.com/rafaelgaspar/otbr-insight) | [sumitbirla/otbr-insight](https://github.com/sumitbirla/otbr-insight) | `ghcr.io/rafaelgaspar/otbr-insight` |
 
@@ -45,10 +45,9 @@ conflict on workflow YAML.
 
 **Build / release machinery** (integration release workflows, apt publish,
 `packaging/debian/build-rafaelgaspar-xpra-for-forky.sh`,
-`packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`, overlay deb
-packaging) lives **only** on `feat/rafaelgaspar`. Child `feat/*` commits must
-be product features only — no deb/apt scripts or release-workflow build steps on
-child layers.
+`packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`) lives **only**
+on `feat/rafaelgaspar`. Child `feat/*` commits must be product features only —
+no deb/apt scripts or release-workflow build steps on child layers.
 
 ## Stacked feat branches (git is the source of truth)
 

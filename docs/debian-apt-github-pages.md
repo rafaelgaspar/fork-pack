@@ -35,9 +35,9 @@ publish land.
 
 ## Release workflow pattern
 
-1. **Checkout fork-pack** next to the fork (tag-bump already does this as `.fork-pack`).
+1. **Checkout fork-pack** next to the fork (tag-bump and publish workflows do this as `.fork-pack`).
 2. **Build debs** with that repo’s packaging script (see table above) in `debian:forky`.
-3. **Publish Pages apt** (from the fork repo checkout on the runner; vendored or `.fork-pack` checkout):
+3. **Publish Pages apt** from the pack checkout (set `RAFAELGASPAR_FORK_PACK` and `APT_GPG_ASC_FILENAME` per repo, e.g. `rafaelgaspar-xpra.gpg.asc`):
 
 ```bash
 export APT_LABEL="rafaelgaspar xpra-html5"

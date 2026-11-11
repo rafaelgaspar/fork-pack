@@ -15,7 +15,10 @@ Clones live in `~/Projects/ThirdParty/fork-pack`.
 Reusable tag-bump lives in `.github/workflows` (`workflow_call` only, so it
 does not run on fork-pack). Skills stay in `dot-cursor/`; `scripts/install.sh`
 vendors scripts and `rafaelgaspar-fork` onto forks as `.github/scripts` and
-`.cursor/skills`.
+`.cursor/skills` (debian apt helpers only when `members.yaml`
+`publish_workflow` is `rafaelgaspar-release.yaml`). Rebuild ignores
+`.fork-pack/` and `rebuild.log` so the CI pack checkout is never committed as
+a gitlink.
 
 Change `scripts/rebuild-rafaelgaspar.sh`,
 `.github/workflows/rafaelgaspar-tag-bump.yaml`, and

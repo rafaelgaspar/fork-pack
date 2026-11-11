@@ -12,7 +12,7 @@ Run html5 tests: `node --test tests/` (CI: `.github/workflows/html5-unit-tests.y
 | **Co-authored-by / signing** | Aligned for upstream PRs. |
 | **html5 `tests/`** | New on upstream base (`v21` had no `tests/`). **CI** runs `node --test tests/` on PRs touching `html5/` or `tests/`. |
 
-## xpra (`v6.5.5` → branch)
+## xpra (`feat-upstream/*` off v7.x / current upstream)
 
 | Branch | Tests | Gaps / notes |
 |--------|--------|----------------|
@@ -21,7 +21,7 @@ Run html5 tests: `node --test tests/` (CI: `.github/workflows/html5-unit-tests.y
 | **video-idle-reuse-encoder** | **`video_idle_test.py`** (6 cases) | Solid. |
 | **multi-screen-pointer** | **`xtest_pointer_test.py`** (mocked warp vs XTest fallback) | PR body: `DISPLAY=:N.M`, wrong-screen clicks; long-term fix is `screen_number` in `test.pyx`. |
 
-## xpra-html5 (`v21` → branch)
+## xpra-html5 (`feat-upstream/*` off master / current upstream)
 
 | Branch | Tests | Gaps / notes |
 |--------|--------|----------------|
@@ -29,6 +29,7 @@ Run html5 tests: `node --test tests/` (CI: `.github/workflows/html5-unit-tests.y
 | **html5-hello-encoding** | **`ClientHello.test.mjs`** | Enough for change size. |
 | **html5-speaker-click-start** | **`ClientAudio.test.mjs`** | Enough (user-gesture / `play()`). |
 | **html5-menu-fixes** | **`Menu.test.mjs`** (vm harness for `rebindMenuHandlers`) | Short manual test plan in PR for toolbar/start menu still helps. |
+| **html5-node-ci** | **`.github/workflows/ci.yml`** runs `node --test tests/` | CI wiring for the unit tests above. |
 
 **Removed (fork-only, not upstream):** ~~html5-audio-aac~~ — use `audio_codec=mediasource:aac+mpeg4` in deploy `default-settings.txt` (k3s-home) instead of reordering `PREFERRED_CODEC_ORDER`.
 
