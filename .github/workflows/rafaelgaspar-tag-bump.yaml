@@ -17,6 +17,16 @@ on:
         description: ERE matching a release tag (e.g. ^v[0-9]+\.[0-9]+\.[0-9]+$ or ^v[0-9]+$)
         required: true
         type: string
+      tracks:
+        description: Rebuild base — tag (latest release tag) or branch (upstream_branch required)
+        required: false
+        type: string
+        default: tag
+      upstream_branch:
+        description: Required when tracks is branch (e.g. v7.x, master)
+        required: false
+        type: string
+        default: ''
       upstream_tag:
         description: Explicit upstream tag; empty uses the latest matching git tag
         required: false
@@ -45,6 +55,9 @@ on:
       should_release:
         description: true when the stack was rebuilt and should be published
         value: ${{ jobs.bump.outputs.should_release }}
+      upstream_tag:
+        description: Upstream tag the stack was rebuilt onto
+        value: ${{ jobs.bump.outputs.upstream_tag }}
 
 # Do not set concurrency here. The fork caller already uses group
 # rafaelgaspar-tag-bump; the same group on this reusable deadlocks
@@ -58,6 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       should_release: ${{ steps.publish.outputs.should_release }}
+      upstream_tag: ${{ steps.tag.outputs.upstream_tag }}
     permissions:
       contents: write
 
@@ -90,56 +104,79 @@ jobs:
             git remote add upstream "${UPSTREAM_URL}"
           fi
 
-      - name: Resolve upstream tag
+      - name: Resolve upstream base
         id: tag
         env:
           INPUT_TAG: ${{ inputs.upstream_tag }}
           TAG_GLOB: ${{ inputs.tag_glob }}
           TAG_FILTER: ${{ inputs.tag_filter }}
+          TRACKS: ${{ inputs.tracks }}
+          UPSTREAM_BRANCH: ${{ inputs.upstream_branch }}
         run: |
           set -euo pipefail
           git fetch upstream --tags --force
+          git fetch upstream --force
           git fetch origin --force --prune
           git fetch origin 'refs/heads/feat/*:refs/remotes/origin/feat/*' || true
 
+          resolve_latest_tag() {
+            git ls-remote --tags upstream "${TAG_GLOB}" \
+              | awk -F/ '{print $3}' \
+              | sed 's/\^{}//' \
+              | grep -E "${TAG_FILTER}" \
+              | sort -V \
+              | tail -1
+          }
+
           if [[ -n "${INPUT_TAG:-}" ]]; then
             UPSTREAM_TAG="${INPUT_TAG}"
+            git rev-parse "${UPSTREAM_TAG}^{commit}" >/dev/null
+            echo "rebuild_arg=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
+            echo "upstream_sha=$(git rev-parse "${UPSTREAM_TAG}^{commit}")" >> "$GITHUB_OUTPUT"
+            echo "Rebuild onto tag ${UPSTREAM_TAG}"
+          elif [[ "${TRACKS}" == "branch" ]]; then
+            [[ -n "${UPSTREAM_BRANCH:-}" ]] \
+              || { echo "tracks=branch requires upstream_branch (e.g. v7.x)"; exit 1; }
+            git fetch upstream "${UPSTREAM_BRANCH}"
+            UPSTREAM_REF="upstream/${UPSTREAM_BRANCH}"
+            UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_REF}^{commit}")
+            chmod +x .fork-pack/scripts/upstream-tree-version.sh .fork-pack/scripts/branch-integration-base.sh
+            INTEGRATION_BASE=$(.fork-pack/scripts/branch-integration-base.sh "${UPSTREAM_SHA}")
+            UPSTREAM_TAG="${INTEGRATION_BASE}"
+            echo "rebuild_arg=--upstream-ref ${UPSTREAM_REF}" >> "$GITHUB_OUTPUT"
+            echo "upstream_sha=${UPSTREAM_SHA}" >> "$GITHUB_OUTPUT"
+            echo "Rebuild onto ${UPSTREAM_REF} (${UPSTREAM_SHA}); integration base ${INTEGRATION_BASE}"
+          elif [[ "${TRACKS}" == "tag" ]]; then
+            UPSTREAM_TAG=$(resolve_latest_tag)
+            [[ -n "${UPSTREAM_TAG:-}" ]] || { echo "No upstream release tag found"; exit 1; }
+            git rev-parse "${UPSTREAM_TAG}^{commit}" >/dev/null
+            echo "rebuild_arg=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
+            echo "upstream_sha=$(git rev-parse "${UPSTREAM_TAG}^{commit}")" >> "$GITHUB_OUTPUT"
+            echo "Rebuild onto tag ${UPSTREAM_TAG}"
           else
-            UPSTREAM_TAG=$(
-              git ls-remote --tags upstream "${TAG_GLOB}" \
-                | awk -F/ '{print $3}' \
-                | sed 's/\^{}//' \
-                | grep -E "${TAG_FILTER}" \
-                | sort -V \
-                | tail -1
-            )
+            echo "invalid tracks=${TRACKS} (use tag or branch)" >&2
+            exit 1
           fi
-
-          [[ -n "${UPSTREAM_TAG:-}" ]] || { echo "No upstream release tag found"; exit 1; }
-          git rev-parse "${UPSTREAM_TAG}^{commit}" >/dev/null
 
           CURRENT_BASE_TAG=""
           if git rev-parse --verify origin/rafaelgaspar >/dev/null 2>&1; then
             CURRENT_BASE_TAG=$(
               git tag -l "${TAG_GLOB}" --merged origin/rafaelgaspar \
-                | grep -E "${TAG_FILTER}" \
+                | { grep -E "${TAG_FILTER}" || true; } \
                 | sort -V | tail -1
             )
           fi
 
           echo "upstream_tag=${UPSTREAM_TAG}" >> "$GITHUB_OUTPUT"
           echo "current_base_tag=${CURRENT_BASE_TAG}" >> "$GITHUB_OUTPUT"
-          echo "Resolved upstream tag: ${UPSTREAM_TAG}"
-          echo "Current stack base tag: ${CURRENT_BASE_TAG:-unknown}"
 
       - name: Decide whether to rebuild
         id: plan
         env:
           EVENT_NAME: ${{ inputs.event_name || github.event_name }}
-          UPSTREAM_TAG: ${{ steps.tag.outputs.upstream_tag }}
+          UPSTREAM_SHA: ${{ steps.tag.outputs.upstream_sha }}
         run: |
           set -euo pipefail
-          UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_TAG}^{commit}")
           # Skip only when this exact upstream commit is already in the *shipped*
           # pointer. Checking feat/rafaelgaspar hid failed mid-stack rebuilds
           # (ROOT already on T, rafaelgaspar still on the old tip).
@@ -149,10 +186,10 @@ jobs:
             && git rev-parse --verify origin/rafaelgaspar >/dev/null 2>&1 \
             && git merge-base --is-ancestor "$UPSTREAM_SHA" origin/rafaelgaspar; then
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Scheduled run: ${UPSTREAM_TAG} (${UPSTREAM_SHA}) is already an ancestor of rafaelgaspar; skipping."
+            echo "Scheduled run: ${UPSTREAM_SHA} is already an ancestor of rafaelgaspar; skipping."
           else
             echo "should_run=true" >> "$GITHUB_OUTPUT"
-            echo "Rebuild ${UPSTREAM_TAG} (${UPSTREAM_SHA})"
+            echo "Rebuild onto ${UPSTREAM_SHA}"
           fi
 
       - name: Install mergiraf
@@ -174,7 +211,12 @@ jobs:
           UPSTREAM_TAG_PATTERN: ${{ inputs.tag_filter }}
         run: |
           chmod +x .fork-pack/scripts/rebuild-rafaelgaspar.sh
-          .fork-pack/scripts/rebuild-rafaelgaspar.sh --dry-run "${{ steps.tag.outputs.upstream_tag }}"
+          REBUILD_ARG="${{ steps.tag.outputs.rebuild_arg }}"
+          if [[ "$REBUILD_ARG" == --upstream-ref* ]]; then
+            .fork-pack/scripts/rebuild-rafaelgaspar.sh --dry-run $REBUILD_ARG
+          else
+            .fork-pack/scripts/rebuild-rafaelgaspar.sh --dry-run "$REBUILD_ARG"
+          fi
 
       - name: Rebuild rafaelgaspar
         id: rebuild
@@ -183,15 +225,23 @@ jobs:
           FORK_PACK_SCRIPTS: ${{ github.workspace }}/.fork-pack/scripts
           CANONICAL_REBUILD_SCRIPT: ${{ github.workspace }}/.fork-pack/scripts/rebuild-rafaelgaspar.sh
           UPSTREAM_TAG_PATTERN: ${{ inputs.tag_filter }}
+          REBUILD_LOG: ${{ runner.temp }}/rebuild.log
         run: |
           set -euo pipefail
+          rm -f rebuild.log "${REBUILD_LOG}"
           chmod +x .fork-pack/scripts/rebuild-rafaelgaspar.sh
           extra=()
           if [[ "${{ inputs.squash }}" == "true" ]]; then
             extra+=(--squash)
           fi
-          .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push "${{ steps.tag.outputs.upstream_tag }}" \
-            2>&1 | tee rebuild.log
+          REBUILD_ARG="${{ steps.tag.outputs.rebuild_arg }}"
+          if [[ "$REBUILD_ARG" == --upstream-ref* ]]; then
+            .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push $REBUILD_ARG \
+              2>&1 | tee "${REBUILD_LOG}"
+          else
+            .fork-pack/scripts/rebuild-rafaelgaspar.sh "${extra[@]}" --push "$REBUILD_ARG" \
+              2>&1 | tee "${REBUILD_LOG}"
+          fi
 
       - name: Record publish intent
         id: publish
@@ -209,6 +259,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           UPSTREAM_TAG: ${{ steps.tag.outputs.upstream_tag }}
           OUTCOME: ${{ steps.rebuild.outcome }}
+          REBUILD_LOG: ${{ runner.temp }}/rebuild.log
         run: |
           set -euo pipefail
           if [[ -z "${WEBHOOK:-}" ]]; then
@@ -224,7 +275,7 @@ jobs:
           tag = os.environ["UPSTREAM_TAG"]
           ok = os.environ["OUTCOME"] == "success"
           conflicts = ""
-          log = pathlib.Path("rebuild.log")
+          log = pathlib.Path(os.environ.get("REBUILD_LOG", "rebuild.log"))
           if log.is_file():
               for line in log.read_text(errors="replace").splitlines():
                   if line.startswith("unresolved conflicts:"):

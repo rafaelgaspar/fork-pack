@@ -15,7 +15,10 @@ Clones live in `~/Projects/ThirdParty/fork-pack`.
 Reusable tag-bump lives in `.github/workflows` (`workflow_call` only, so it
 does not run on fork-pack). Skills stay in `dot-cursor/`; `scripts/install.sh`
 vendors scripts and `rafaelgaspar-fork` onto forks as `.github/scripts` and
-`.cursor/skills`.
+`.cursor/skills` (debian apt helpers only when `members.yaml`
+`publish_workflow` is `rafaelgaspar-release.yaml`). Rebuild ignores
+`.fork-pack/` and `rebuild.log` so the CI pack checkout is never committed as
+a gitlink.
 
 Change `scripts/rebuild-rafaelgaspar.sh`,
 `.github/workflows/rafaelgaspar-tag-bump.yaml`, and
@@ -27,11 +30,13 @@ Tag-bump installs **mergiraf**, pushes only after the full local stack, and
 skips the daily cron when `origin/rafaelgaspar` already contains the upstream
 commit. Mergiraf keeps overlay body insertions; leftover conflicts are
 usually wrapper composition (`withAuth` vs `withApiMetrics`) — union the
-wraps and do not rewrite the handler from ours/HEAD. Rebuild
-success/failure posts to Discord `#forks-tag-bump` via secret
-`DISCORD_WEBHOOK_FORKS_TAG_BUMP` on each fork (incoming webhook). Daily skips stay
-quiet. Fixer has GitHub MCP only — it can summarize a failed Actions run
-in `#forks-tag-bump`, not rebuild the stack.
+wraps and do not rewrite the handler from ours/HEAD. Publish must checkout
+the restacked `rafaelgaspar` ref (not the caller's `github.sha`) and tag
+from the upstream tag that was rebuilt. Rebuild success/failure posts to
+Discord `#forks-tag-bump` via secret `DISCORD_WEBHOOK_FORKS_TAG_BUMP` on
+each fork (incoming webhook). Daily skips stay quiet. Fixer has GitHub MCP
+only — it can summarize a failed Actions run in `#forks-tag-bump`, not
+rebuild the stack.
 
 Members and tag filters: `members.yaml`. Fork workflow for agents:
 [rafaelgaspar-fork](../rafaelgaspar-fork/SKILL.md).

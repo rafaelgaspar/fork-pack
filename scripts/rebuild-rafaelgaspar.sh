@@ -12,17 +12,21 @@ ROOT_FEAT="${ROOT_FEAT:-feat/rafaelgaspar}"
 UPSTREAM_TAG_PATTERN="${UPSTREAM_TAG_PATTERN:-^v[0-9]+(\\.[0-9]+\\.[0-9]+)?$}"
 
 UPSTREAM_TAG=""
+UPSTREAM_REF=""
 PUSH=false
 DRY_RUN=false
 SQUASH=false
 
 usage() {
   cat <<'EOF'
-Usage: rebuild-rafaelgaspar.sh [options] <upstream-tag>
+Usage: rebuild-rafaelgaspar.sh [options] [<upstream-tag>]
 
-Rebuild the linear feat/* stack on upstream tag T and reset rafaelgaspar to the stack tip.
+Rebuild the linear feat/* stack and reset rafaelgaspar to the stack tip.
+
+Base is either an upstream release tag (default) or --upstream-ref (tracks: branch).
 
 Options:
+  --upstream-ref    Rebuild onto a git ref (e.g. upstream/master) instead of a tag
   --push            Push rebased feat/* branches and rafaelgaspar (--force-with-lease)
   --squash          Squash each layer to one commit and fix automation titles
   --dry-run         Discover and validate the stack only; do not rebase or push
@@ -74,7 +78,7 @@ discover_stack() {
   )
 
   [[ ${STACK[0]} == "$ROOT_FEAT" ]] \
-    || die "${ROOT_FEAT} must lead the stack closest to ${UPSTREAM_TAG}; got ${STACK[0]}"
+    || die "${ROOT_FEAT} must lead the stack; got ${STACK[0]}"
 
   # Drop leftover feat/* commits whose tree matches the previous layer.
   local compact=() prev_tree="" tree
@@ -228,6 +232,15 @@ install_canonical_script() {
     if [[ -f .github/workflows/rafaelgaspar-tag-bump-reusable.yaml ]]; then
       git rm -f --ignore-unmatch .github/workflows/rafaelgaspar-tag-bump-reusable.yaml
     fi
+    # Apt helpers only on forks that already ship a forky deb build script.
+    if [[ -d $dir/debian ]] && compgen -G "packaging/debian/build-rafaelgaspar-*" >/dev/null; then
+      mkdir -p .github/scripts/debian
+      cp -a "$dir"/debian/*.sh .github/scripts/debian/
+      chmod +x .github/scripts/debian/*.sh
+      git add .github/scripts/debian
+    else
+      git rm -rf --ignore-unmatch .github/scripts/debian >/dev/null 2>&1 || true
+    fi
   elif [[ -n $script_path && -f $script_path ]]; then
     cp "$script_path" .github/scripts/rebuild-rafaelgaspar.sh
     chmod +x .github/scripts/rebuild-rafaelgaspar.sh
@@ -268,6 +281,7 @@ finalize_layer_commit() {
 
 commit_layer() {
   local message=$1
+  drop_ci_checkout_artifacts
   if git diff --cached --quiet && git diff --quiet; then
     git commit --allow-empty -m "$message"
   else
@@ -288,14 +302,38 @@ disable_upstream_workflows() {
   done
 }
 
+drop_ci_checkout_artifacts() {
+  # Tag-bump checks out fork-pack to .fork-pack; never commit that gitlink
+  # or the rebuild tee log.
+  git rm -f --ignore-unmatch --cached .fork-pack >/dev/null 2>&1 || true
+  git rm -f --ignore-unmatch rebuild.log >/dev/null 2>&1 || true
+}
+
+ensure_claude_skills_if_absent() {
+  # xpra (and any future member) already ships .claude/skills; do not replace
+  # that tree with a symlink to the fork overlay.
+  if [[ -e .claude/skills || -L .claude/skills ]]; then
+    return 0
+  fi
+  mkdir -p .claude
+  ln -s ../.cursor/skills .claude/skills
+}
+
 ensure_gitignore_fork_block() {
   local tree_ref=$1
   local block
   [[ -f .gitignore ]] || touch .gitignore
-  grep -q '# agent skills' .gitignore && return 0
-  block=$(git show "${tree_ref}:.gitignore" 2>/dev/null | awk '/# agent skills/,0') || return 0
-  [[ -n $block ]] || return 0
-  printf '\n%s\n' "$block" >> .gitignore
+  if ! grep -q '# agent skills' .gitignore; then
+    block=$(git show "${tree_ref}:.gitignore" 2>/dev/null | awk '/# agent skills/,0') || true
+    if [[ -n $block ]]; then
+      printf '\n%s\n' "$block" >> .gitignore
+    fi
+  fi
+  if ! grep -Eq '^(\.fork-pack/?|/\.fork-pack/?)$' .gitignore; then
+    printf '\n# fork-pack CI checkout and tag-bump log (never commit)\n.fork-pack/\nrebuild.log\n' >> .gitignore
+  elif ! grep -Eq '^(/)?rebuild\.log$' .gitignore && ! grep -Eq '^\*\.log$' .gitignore; then
+    printf 'rebuild.log\n' >> .gitignore
+  fi
 }
 
 ensure_readme_fork_section() {
@@ -345,7 +383,8 @@ PY
 
 # Overlay fork-owned files onto the new upstream tag. Never cherry-pick the old
 # ROOT commit: that patch edits upstream workflows/README and conflicts whenever
-# upstream touches the same files.
+# upstream touches the same files. packaging/debian/build-rafaelgaspar-* (and
+# sibling apt helpers) must be copied or squash drops them from the overlay.
 apply_root_layer_tree() {
   local parent_ref=$1
   local tree_ref=$2
@@ -353,7 +392,7 @@ apply_root_layer_tree() {
 
   mapfile -t paths < <(
     git ls-tree -r --name-only "$tree_ref" \
-      | grep -E '^(\.github/(scripts/|workflows/rafaelgaspar-)|\.cursor/skills|\.claude/skills|packaging/rafaelgaspar-overlay)' \
+      | grep -E '^(\.github/(scripts/|workflows/rafaelgaspar-)|\.cursor/skills|packaging/debian/(build-rafaelgaspar-|publish-apt-|verify-forky-))' \
       || true
   )
   if ((${#paths[@]} > 0)); then
@@ -370,6 +409,8 @@ apply_root_layer_tree() {
   disable_upstream_workflows
   ensure_gitignore_fork_block "$tree_ref"
   ensure_readme_fork_section "$tree_ref"
+  drop_ci_checkout_artifacts
+  ensure_claude_skills_if_absent
   git add -A
 }
 
@@ -527,6 +568,46 @@ try_mergiraf_solve() {
   ! git diff --name-only --diff-filter=U | grep -q .
 }
 
+# Overlay lockfiles cannot be unioned. Start from the new parent's lockfile and
+# regenerate so package.json (auto-merged, e.g. 2.7.0 + prom-client) stays consistent.
+resolve_owned_lockfile() {
+  local old_parent=$1
+  local tree_ref=$2
+  local path installer
+
+  for path in pnpm-lock.yaml package-lock.json yarn.lock; do
+    git diff --name-only --diff-filter=U | grep -qx "$path" || continue
+    git diff --name-only "$old_parent" "$tree_ref" -- | grep -qx "$path" || continue
+    git checkout --ours -- "$path"
+    case $path in
+      pnpm-lock.yaml)
+        if command -v pnpm >/dev/null 2>&1; then
+          installer=(pnpm)
+        elif command -v corepack >/dev/null 2>&1; then
+          corepack enable >/dev/null 2>&1 || true
+          corepack prepare pnpm@latest --activate
+          installer=(pnpm)
+        else
+          installer=(npx --yes pnpm)
+        fi
+        "${installer[@]}" install --lockfile-only --ignore-scripts
+        ;;
+      package-lock.json)
+        npm install --package-lock-only --ignore-scripts
+        ;;
+      yarn.lock)
+        if command -v yarn >/dev/null 2>&1; then
+          yarn install --mode=update-lockfile
+        else
+          die "yarn.lock conflicted and yarn is not installed"
+        fi
+        ;;
+    esac
+    git add -- "$path"
+    log "lockfile conflict: regenerated ${path} from merged package.json"
+  done
+}
+
 # Apply the old layer's patch onto the new parent (3-way merge vs the old parent).
 # Do not checkout the old tree — that would revert upstream files to the previous tag.
 apply_child_layer_patch() {
@@ -558,6 +639,22 @@ apply_child_layer_patch() {
     .claude/skills \
     2>/dev/null || true
   if ! $cherry_ok; then
+    # Overlay-owned Dockerfiles are full-file rewrites. Upstream FROM bumps
+    # (homepage node:22→24) conflict; mergiraf has no Dockerfile language.
+    # Keep the layer's file when that layer is the one that changed it.
+    if git diff --name-only --diff-filter=U | grep -qx Dockerfile \
+      && git diff --name-only "$old_parent" "$tree_ref" -- | grep -qx Dockerfile; then
+      git checkout --theirs -- Dockerfile
+      git add -- Dockerfile
+      log "Dockerfile conflict: kept ${tree_ref} overlay"
+    fi
+    resolve_owned_lockfile "$old_parent" "$tree_ref"
+    # Overlay restacks can carry a leftover rebuild.log; the new parent
+    # deleted it. Keep the deletion so the log never re-enters the stack.
+    if git diff --name-only --diff-filter=U | grep -qx rebuild.log; then
+      git rm -f -- rebuild.log >/dev/null
+      log "rebuild.log conflict: dropped leftover log from ${tree_ref}"
+    fi
     if git diff --name-only --diff-filter=U | grep -q .; then
       try_mergiraf_solve || true
     fi
@@ -568,6 +665,7 @@ apply_child_layer_patch() {
     fi
     git cherry-pick --quit >/dev/null 2>&1 || true
   fi
+  drop_ci_checkout_artifacts
   git add -A
 }
 
@@ -578,6 +676,11 @@ push_ref() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --upstream-ref)
+      [[ $# -ge 2 ]] || die "--upstream-ref requires a ref"
+      UPSTREAM_REF=$2
+      shift 2
+      ;;
     --push)
       PUSH=true
       shift
@@ -609,9 +712,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ -n $UPSTREAM_TAG ]] || die "upstream tag required"
-[[ $UPSTREAM_TAG =~ $UPSTREAM_TAG_PATTERN ]] \
-  || die "upstream tag ${UPSTREAM_TAG} does not match expected pattern"
+if [[ -n $UPSTREAM_REF && -n $UPSTREAM_TAG ]]; then
+  die "use either --upstream-ref or an upstream tag, not both"
+fi
+if [[ -z $UPSTREAM_REF && -z $UPSTREAM_TAG ]]; then
+  die "upstream tag or --upstream-ref required"
+fi
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "must run inside a git repository"
 git fetch "$UPSTREAM_REMOTE" --tags --force
@@ -621,29 +727,40 @@ if git remote get-url archive >/dev/null 2>&1; then
   git fetch archive --force --prune || true
 fi
 
-UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_TAG}^{commit}") \
-  || die "upstream tag not found: ${UPSTREAM_TAG} (remote ${UPSTREAM_REMOTE})"
-
-# Compare tag *objects* (annotated tag SHA != peeled commit). Some hosts omit
-# the refs/tags/T^{} line from ls-remote, so do not treat the tag object as a commit.
-local_tag_obj=$(git rev-parse "${UPSTREAM_TAG}")
-remote_tag_obj=$(
-  git ls-remote --tags "$UPSTREAM_REMOTE" "refs/tags/${UPSTREAM_TAG}" \
-    | awk -v tag="refs/tags/${UPSTREAM_TAG}" '$2 == tag { print $1; exit }'
-)
-[[ -n $remote_tag_obj ]] \
-  || die "upstream remote has no tag ${UPSTREAM_TAG} (refusing local/forged tag)"
-[[ $local_tag_obj == "$remote_tag_obj" ]] \
-  || die "local tag ${UPSTREAM_TAG} (${local_tag_obj}) != upstream (${remote_tag_obj}); retag not fetched"
+if [[ -n $UPSTREAM_REF ]]; then
+  git fetch "$UPSTREAM_REMOTE" --force
+  UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_REF}^{commit}") \
+    || die "upstream ref not found: ${UPSTREAM_REF}"
+  UPSTREAM_BASE_LABEL=$UPSTREAM_REF
+else
+  [[ $UPSTREAM_TAG =~ $UPSTREAM_TAG_PATTERN ]] \
+    || die "upstream tag ${UPSTREAM_TAG} does not match expected pattern"
+  UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_TAG}^{commit}") \
+    || die "upstream tag not found: ${UPSTREAM_TAG} (remote ${UPSTREAM_REMOTE})"
+  local_tag_obj=$(git rev-parse "${UPSTREAM_TAG}")
+  remote_tag_obj=$(
+    git ls-remote --tags "$UPSTREAM_REMOTE" "refs/tags/${UPSTREAM_TAG}" \
+      | awk -v tag="refs/tags/${UPSTREAM_TAG}" '$2 == tag { print $1; exit }'
+  )
+  [[ -n $remote_tag_obj ]] \
+    || die "upstream remote has no tag ${UPSTREAM_TAG} (refusing local/forged tag)"
+  [[ $local_tag_obj == "$remote_tag_obj" ]] \
+    || die "local tag ${UPSTREAM_TAG} (${local_tag_obj}) != upstream (${remote_tag_obj}); retag not fetched"
+  UPSTREAM_BASE_LABEL=$UPSTREAM_TAG
+fi
 
 log "integration branch: ${INTEGRATION_BRANCH}"
-log "upstream tag: ${UPSTREAM_TAG} (${UPSTREAM_SHA})"
+log "upstream base: ${UPSTREAM_BASE_LABEL} (${UPSTREAM_SHA})"
+
+# tag-bump tees to rebuild.log in CI; drop it so checkouts are not blocked.
+git rm -f --ignore-unmatch rebuild.log >/dev/null 2>&1 || true
+rm -f rebuild.log
 
 discover_stack
 log "stack order (${#STACK[@]} branches):"
 for branch in "${STACK[@]}"; do
   if [[ $branch == "$ROOT_FEAT" ]]; then
-    printf '  - %s (base: %s)\n' "$branch" "$UPSTREAM_TAG"
+    printf '  - %s (base: %s)\n' "$branch" "$UPSTREAM_BASE_LABEL"
   else
     printf '  - %s (base: %s)\n' "$branch" "${STACK_PARENT[$branch]}"
   fi

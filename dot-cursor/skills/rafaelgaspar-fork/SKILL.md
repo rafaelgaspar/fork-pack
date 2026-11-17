@@ -17,12 +17,14 @@ Shared workflow for the public application forks. Clone them under
 skills in `dot-cursor/` vendored onto forks as `.cursor/`). Per-fork remotes
 and tag filters: `members.yaml`.
 
+**Upstream PR test coverage:** [docs/feat-upstream-test-coverage.md](https://github.com/rafaelgaspar/fork-pack/blob/main/docs/feat-upstream-test-coverage.md) in fork-pack.
+
 | Fork | Upstream | Ships from `rafaelgaspar` |
 | --- | --- | --- |
 | [homepage](https://github.com/rafaelgaspar/homepage) | [gethomepage/homepage](https://github.com/gethomepage/homepage) | `ghcr.io/rafaelgaspar/homepage` |
 | [supergateway](https://github.com/rafaelgaspar/supergateway) | [supercorp-ai/supergateway](https://github.com/supercorp-ai/supergateway) | `ghcr.io/rafaelgaspar/supergateway` |
-| [xpra](https://github.com/rafaelgaspar/xpra) | [Xpra-org/xpra](https://github.com/Xpra-org/xpra) | GitHub release + overlay `.deb` |
-| [xpra-html5](https://github.com/rafaelgaspar/xpra-html5) | [Xpra-org/xpra-html5](https://github.com/Xpra-org/xpra-html5) | GitHub release + HTML5 tarball |
+| [xpra](https://github.com/rafaelgaspar/xpra) | [Xpra-org/xpra](https://github.com/Xpra-org/xpra) | GitHub release: full `.deb` set + `deb-manifest.txt` via `packaging/debian/build-rafaelgaspar-xpra-for-forky.sh` |
+| [xpra-html5](https://github.com/rafaelgaspar/xpra-html5) | [Xpra-org/xpra-html5](https://github.com/Xpra-org/xpra-html5) | Tarball + `packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`; apt via [fork-pack](https://github.com/rafaelgaspar/fork-pack/blob/main/docs/debian-apt-github-pages.md) |
 | [otbr-insight](https://github.com/rafaelgaspar/otbr-insight) | [sumitbirla/otbr-insight](https://github.com/sumitbirla/otbr-insight) | `ghcr.io/rafaelgaspar/otbr-insight` |
 
 This skill is **fork workflow only**. Deploy config (Helm, secrets, image overlays)
@@ -40,6 +42,12 @@ belongs in the private cluster repo, not in these public forks.
 fork-pack: rebuild script, tag-bump caller, this skill, fork README). Upstream
 CI workflows are **deleted** on the fork, not edited, so tag bumps do not
 conflict on workflow YAML.
+
+**Build / release machinery** (integration release workflows, apt publish,
+`packaging/debian/build-rafaelgaspar-xpra-for-forky.sh`,
+`packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`) lives **only**
+on `feat/rafaelgaspar`. Child `feat/*` commits must be product features only —
+no deb/apt scripts or release-workflow build steps on child layers.
 
 ## Stacked feat branches (git is the source of truth)
 
@@ -98,6 +106,11 @@ fork image or release tag is the artifact.
 
 ## Upstream tag bump
 
+`members.yaml` sets **`tracks: tag`** (default) or **`tracks: branch`**.
+**tag** → latest upstream release tag; **branch** → **`upstream_branch`** (required,
+e.g. `v7.x` for Xpra server, `master` for xpra-html5). **branch** integration tags use
+`v{tree-version}-{shortsha}-rafaelgaspar.N`.
+
 When upstream publishes a git tag **T** matching `tag_filter` in `members.yaml`
 (a GitHub Release is not required), the fork's thin tag-bump caller runs
 `rafaelgaspar/fork-pack` `rebuild-rafaelgaspar.sh --squash --push`:
@@ -133,6 +146,13 @@ FORK_PACK_SCRIPTS=~/Projects/ThirdParty/fork-pack/scripts \
 
 Change rebuild/tag-bump **in fork-pack**, not by forking copies in the five
 repos.
+
+Per-fork publish workflows must checkout `${{ inputs.ref || github.sha }}`
+and pass tag-bump's `upstream_tag` into `resolve-integration-tag.sh`.
+`github.event_name == 'workflow_call'` is false when the caller is
+`schedule`, so using that test falls back to `github.sha` from the start
+of the run and tags the previous overlay (supergateway rebuilt 4.2.1 then
+published `v4.2.0-rafaelgaspar.1`).
 
 ## One commit per feat branch
 
