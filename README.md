@@ -139,5 +139,8 @@ ours/HEAD.
 Attempted rebuilds (not daily skips) post success or failure to Discord
 `#forks-tag-bump`. Put the channel incoming webhook in an Actions secret
 named **`DISCORD_WEBHOOK_FORKS_TAG_BUMP`** on each fork (`secrets: inherit`
-on the thin caller). Fixer can read the Actions log over GitHub MCP; it
-has no git binary and no GPG, so it cannot rebuild the stack yet.
+on the thin caller). Fixer restacks leftover conflicts from that channel:
+per-pod `prepare-agent-worktree fixer` on the fork (not the shared clone),
+mergiraf, `cherry-pick -n` + `git-signing-mcp` `sign_commit` per layer, then
+operator-cued `--force-with-lease` of `feat/*` and `rafaelgaspar`. Do not run
+`rebuild-rafaelgaspar.sh` in the Fixer pod — it calls `git commit`.
