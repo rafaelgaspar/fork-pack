@@ -34,9 +34,9 @@ wraps and do not rewrite the handler from ours/HEAD. Publish must checkout
 the restacked `rafaelgaspar` ref (not the caller's `github.sha`) and tag
 from the upstream tag that was rebuilt. Rebuild success/failure posts to
 Discord `#forks-tag-bump` via secret `DISCORD_WEBHOOK_FORKS_TAG_BUMP` on
-each fork (incoming webhook). Daily skips stay quiet. Fixer has GitHub MCP
-only — it can summarize a failed Actions run in `#forks-tag-bump`, not
-rebuild the stack.
+each fork (incoming webhook). Daily skips stay quiet. Fixer restacks leftover
+conflicts from `#forks-tag-bump` (per-pod worktree, mergiraf, `cherry-pick -n`
++ `sign_commit`; never `rebuild-rafaelgaspar.sh` as-is).
 
 Members and tag filters: `members.yaml`. Fork workflow for agents:
 [rafaelgaspar-fork](../rafaelgaspar-fork/SKILL.md).
