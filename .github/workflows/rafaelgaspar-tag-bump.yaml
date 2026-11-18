@@ -23,7 +23,7 @@ on:
         type: string
         default: tag
       upstream_branch:
-        description: Required when tracks is branch (e.g. v7.x, master)
+        description: Required when tracks is branch (e.g. master)
         required: false
         type: string
         default: ''
@@ -136,7 +136,7 @@ jobs:
             echo "Rebuild onto tag ${UPSTREAM_TAG}"
           elif [[ "${TRACKS}" == "branch" ]]; then
             [[ -n "${UPSTREAM_BRANCH:-}" ]] \
-              || { echo "tracks=branch requires upstream_branch (e.g. v7.x)"; exit 1; }
+              || { echo "tracks=branch requires upstream_branch (e.g. master)"; exit 1; }
             git fetch upstream "${UPSTREAM_BRANCH}"
             UPSTREAM_REF="upstream/${UPSTREAM_BRANCH}"
             UPSTREAM_SHA=$(git rev-parse "${UPSTREAM_REF}^{commit}")

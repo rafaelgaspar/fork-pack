@@ -12,7 +12,7 @@ Run html5 tests: `node --test tests/` (CI: `.github/workflows/html5-unit-tests.y
 | **Co-authored-by / signing** | Aligned for upstream PRs. |
 | **html5 `tests/`** | New on upstream base (`v21` had no `tests/`). **CI** runs `node --test tests/` on PRs touching `html5/` or `tests/`. |
 
-## xpra (`feat-upstream/*` off v7.x / current upstream)
+## xpra (`feat-upstream/*` off master / current upstream)
 
 | Branch | Tests | Gaps / notes |
 |--------|--------|----------------|

@@ -1,13 +1,13 @@
-# Xpra: full fork debs (`tracks: branch` / `upstream/v7.x`)
+# Xpra: full fork debs (`tracks: branch` / `upstream/master`)
 
 ## Problem (legacy)
 
 Older images used **xpra.org** `apt` (e.g. 6.5.6) plus **`xpra-rafaelgaspar-overlay_*`**
-(divert ~20 Python modules + HTML5 www). That cannot track **`upstream/v7.x`**
-coherently (master is already 8.x).
+(divert ~20 Python modules + HTML5 www). That cannot track **`upstream/master`**
+coherently (tree version 8.0).
 
-**members.yaml** sets `tracks: branch` on **`xpra`** → `upstream_branch: v7.x` and
-**`xpra-html5`** → `upstream_branch: master` (current html5 client; merged upstream features).
+**members.yaml** sets `tracks: branch` on **`xpra`** and **`xpra-html5`** →
+`upstream_branch: master` (Xpra-org development; tree versions 8.0 and 22).
 
 ## Target
 
@@ -17,7 +17,7 @@ coherently (master is already 8.x).
 | Fork HTML5 tree | **Staged into the source tree** before `debuild` (same commit as xpra-html5 integration tag) |
 | Cluster image | **No xpra.org** `xpra-*` packages; **no overlay deb** |
 
-Integration **git tags** keep a hyphen (`v7.0-<sha>-rafaelgaspar.N`, or the upstream tag when `tracks: tag`). `~` is a git rev-parse operator, so it must not appear in tag names.
+Integration **git tags** keep a hyphen (`v8.0-<sha>-rafaelgaspar.N`, or the upstream tag when `tracks: tag`). `~` is a git rev-parse operator, so it must not appear in tag names.
 
 **Debian package versions and `.deb` filenames** use a tilde, e.g. `7.0~abc1234.rafaelgaspar.0` (sorts before the next upstream). **`deb-manifest.txt`** lists those filenames as built (with `~`), not a dotted rewrite.
 
@@ -35,8 +35,9 @@ Integration releases also update an **apt repository** on GitHub Pages (`gh-page
 `deb [signed-by=/usr/share/keyrings/rafaelgaspar-xpra.gpg] https://rafaelgaspar.github.io/xpra/apt forky main`
 
 The old `xpra-rafaelgaspar-overlay` package (xpra.org 6.x + diverted Python
-modules) is **retired**. v7.x integration releases ship only the full forky
-deb set. Existing 6.5.x overlay GitHub releases stay as historical artifacts.
+modules) is **retired**. Master-line integration releases ship only the full
+forky deb set. Existing 6.5.x overlay and v7.x GitHub releases stay as
+historical artifacts.
 
 ## k3s-home
 

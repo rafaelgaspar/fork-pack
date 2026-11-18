@@ -56,7 +56,7 @@ global_integration_n() {
   printf '%s\n' "$max"
 }
 
-# v{ver}-{shortsha} from merge-base with upstream (html5 master/main, xpra v7.x).
+# v{ver}-{shortsha} from merge-base with upstream (xpra and html5 track master).
 # Version comes from the tree (html5 setup.py VERSION=22), not from v21 git tags.
 infer_branch_base() {
   local uref merge script_dir
