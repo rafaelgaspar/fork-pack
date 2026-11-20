@@ -2,9 +2,9 @@
 name: rafaelgaspar-fork
 description: >-
   Work with rafaelgaspar application forks (homepage, supergateway, xpra,
-  xpra-html5, otbr-insight) — stacked feat branches, rafaelgaspar integration pointer,
-  upstream tag rebuilds. Use when changing fork branches, stack order, tag-bump,
-  or fork-pack shared files.
+  xpra-html5, otbr-insight, http-add-on) — stacked feat branches, rafaelgaspar
+  integration pointer, upstream tag rebuilds. Use when changing fork branches,
+  stack order, tag-bump, or fork-pack shared files.
 disable-model-invocation: true
 ---
 
@@ -26,6 +26,7 @@ and tag filters: `members.yaml`.
 | [xpra](https://github.com/rafaelgaspar/xpra) | [Xpra-org/xpra](https://github.com/Xpra-org/xpra) | GitHub release: full `.deb` set + `deb-manifest.txt` via `packaging/debian/build-rafaelgaspar-xpra-for-forky.sh` |
 | [xpra-html5](https://github.com/rafaelgaspar/xpra-html5) | [Xpra-org/xpra-html5](https://github.com/Xpra-org/xpra-html5) | Tarball + `packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`; apt via [fork-pack](https://github.com/rafaelgaspar/fork-pack/blob/main/docs/debian-apt-github-pages.md) |
 | [otbr-insight](https://github.com/rafaelgaspar/otbr-insight) | [sumitbirla/otbr-insight](https://github.com/sumitbirla/otbr-insight) | `ghcr.io/rafaelgaspar/otbr-insight` |
+| [http-add-on](https://github.com/rafaelgaspar/http-add-on) | [kedacore/http-add-on](https://github.com/kedacore/http-add-on) | `ghcr.io/rafaelgaspar/http-add-on-interceptor` |
 
 This skill is **fork workflow only**. Deploy config (Helm, secrets, image overlays)
 belongs in the private cluster repo, not in these public forks.
@@ -56,9 +57,14 @@ Features form a **linear stack**. Each `feat/*` branch carries **exactly one com
 ```text
 <upstream-tag>
  └── feat/rafaelgaspar
-      └── feat/<next>
-           └── feat/<tip>  ← rafaelgaspar reset --hard here
+      └── feat/latest-*-and-forky   ← Node: latest-node-and-forky; Go: latest-golang-and-forky
+           └── feat/<next>
+                └── feat/<tip>  ← rafaelgaspar reset --hard here
 ```
+
+The **standard second layer** is fork-only (not an upstream PR). Node images
+use `feat/latest-node-and-forky`; Go images use `feat/latest-golang-and-forky`.
+Each stack has one of those, not both.
 
 Order is defined by **git merge-base**, not a manifest file:
 

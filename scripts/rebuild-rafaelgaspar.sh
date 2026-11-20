@@ -398,13 +398,16 @@ apply_root_layer_tree() {
   if ((${#paths[@]} > 0)); then
     git checkout "$tree_ref" -- "${paths[@]}"
   fi
-  # Only overlay Dockerfile when the ROOT layer itself changed it.
-  if git cat-file -e "${tree_ref}:Dockerfile" 2>/dev/null; then
-    old_parent=$(git rev-parse "${tree_ref}^" 2>/dev/null) || old_parent=""
-    if [[ -n $old_parent ]] && ! git diff --quiet "$old_parent" "$tree_ref" -- Dockerfile; then
-      git checkout "$tree_ref" -- Dockerfile
+  # Only overlay image files when the ROOT layer itself changed them.
+  local overlay_file
+  for overlay_file in Dockerfile .ko.yaml; do
+    if git cat-file -e "${tree_ref}:${overlay_file}" 2>/dev/null; then
+      old_parent=$(git rev-parse "${tree_ref}^" 2>/dev/null) || old_parent=""
+      if [[ -n $old_parent ]] && ! git diff --quiet "$old_parent" "$tree_ref" -- "$overlay_file"; then
+        git checkout "$tree_ref" -- "$overlay_file"
+      fi
     fi
-  fi
+  done
 
   disable_upstream_workflows
   ensure_gitignore_fork_block "$tree_ref"
@@ -606,6 +609,55 @@ resolve_owned_lockfile() {
     git add -- "$path"
     log "lockfile conflict: regenerated ${path} from merged package.json"
   done
+
+  resolve_owned_gomod "$old_parent" "$tree_ref"
+}
+
+# Overlay go.mod language/toolchain cannot be unioned with an upstream bump.
+# Keep the layer's `go` / `toolchain` lines on the new parent's go.mod, then tidy.
+resolve_owned_gomod() {
+  local old_parent=$1
+  local tree_ref=$2
+
+  git diff --name-only --diff-filter=U | grep -qE '^(go\.mod|go\.sum)$' || return 0
+  git diff --name-only "$old_parent" "$tree_ref" -- | grep -qE '^(go\.mod|go\.sum)$' || return 0
+  command -v go >/dev/null 2>&1 || die "go.mod/go.sum conflicted and go is not installed"
+
+  if git diff --name-only --diff-filter=U | grep -qx go.mod; then
+    git checkout --ours -- go.mod
+  fi
+  if git diff --name-only --diff-filter=U | grep -qx go.sum; then
+    git checkout --ours -- go.sum
+  fi
+
+  python3 - "$tree_ref" <<'PY'
+import re, subprocess, sys
+from pathlib import Path
+
+tree_ref = sys.argv[1]
+overlay = subprocess.check_output(["git", "show", f"{tree_ref}:go.mod"], text=True)
+ours = Path("go.mod").read_text()
+go_line = next((ln for ln in overlay.splitlines() if re.match(r"^go\s", ln)), None)
+toolchain = next((ln for ln in overlay.splitlines() if re.match(r"^toolchain\s", ln)), None)
+
+def replace_or_insert(src, pattern, line):
+    if line is None:
+        return src
+    if re.search(pattern, src, re.M):
+        return re.sub(pattern, line, src, count=1, flags=re.M)
+    # Place toolchain after the go line when inserting.
+    if pattern.startswith(r"^toolchain"):
+        return re.sub(r"^(go\s.*)$", r"\1\n" + line, src, count=1, flags=re.M)
+    return line + "\n" + src
+
+ours = replace_or_insert(ours, r"^go\s.*$", go_line)
+ours = replace_or_insert(ours, r"^toolchain\s.*$", toolchain)
+Path("go.mod").write_text(ours)
+PY
+
+  go mod tidy
+  git add -- go.mod go.sum
+  log "go.mod conflict: kept overlay go/toolchain and tidied go.sum"
 }
 
 # Apply the old layer's patch onto the new parent (3-way merge vs the old parent).
@@ -642,12 +694,15 @@ apply_child_layer_patch() {
     # Overlay-owned Dockerfiles are full-file rewrites. Upstream FROM bumps
     # (homepage node:22→24) conflict; mergiraf has no Dockerfile language.
     # Keep the layer's file when that layer is the one that changed it.
-    if git diff --name-only --diff-filter=U | grep -qx Dockerfile \
-      && git diff --name-only "$old_parent" "$tree_ref" -- | grep -qx Dockerfile; then
-      git checkout --theirs -- Dockerfile
-      git add -- Dockerfile
-      log "Dockerfile conflict: kept ${tree_ref} overlay"
-    fi
+    local overlay_file
+    for overlay_file in Dockerfile .ko.yaml; do
+      if git diff --name-only --diff-filter=U | grep -qx "$overlay_file" \
+        && git diff --name-only "$old_parent" "$tree_ref" -- | grep -qx "$overlay_file"; then
+        git checkout --theirs -- "$overlay_file"
+        git add -- "$overlay_file"
+        log "${overlay_file} conflict: kept ${tree_ref} overlay"
+      fi
+    done
     resolve_owned_lockfile "$old_parent" "$tree_ref"
     # Overlay restacks can carry a leftover rebuild.log; the new parent
     # deleted it. Keep the deletion so the log never re-enters the stack.
