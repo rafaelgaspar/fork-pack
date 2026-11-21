@@ -36,3 +36,11 @@ forks:
     tag_glob: 'v*.*.*'
     tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
     publish_workflow: rafaelgaspar-ghcr-publish.yaml
+  http-add-on:
+    repo: rafaelgaspar/http-add-on
+    upstream: https://github.com/kedacore/http-add-on.git
+    tag_glob: 'v*.*.*'
+    tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+    tracks: branch
+    upstream_branch: main
+    publish_workflow: rafaelgaspar-ghcr-publish.yaml

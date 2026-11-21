@@ -2,8 +2,8 @@
 name: fork-pack
 description: >-
   Shared rebuild/tag-bump files for rafaelgaspar application forks (homepage,
-  supergateway, xpra, xpra-html5, otbr-insight). Use when changing stack rebuild,
-  tag-bump, mergiraf, Discord notify, or fork-pack install.
+  supergateway, xpra, xpra-html5, otbr-insight, http-add-on). Use when changing
+  stack rebuild, tag-bump, mergiraf, Discord notify, or fork-pack install.
 disable-model-invocation: true
 ---
 
@@ -22,7 +22,7 @@ a gitlink.
 
 Change `scripts/rebuild-rafaelgaspar.sh`,
 `.github/workflows/rafaelgaspar-tag-bump.yaml`, and
-`dot-cursor/skills/rafaelgaspar-fork/` **here**, not in the five forks.
+`dot-cursor/skills/rafaelgaspar-fork/` **here**, not in the member forks.
 Forks call `rafaelgaspar/fork-pack/.github/workflows/rafaelgaspar-tag-bump.yaml@main`.
 Publish workflows stay per-fork.
 
