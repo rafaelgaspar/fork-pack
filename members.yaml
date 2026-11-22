@@ -44,3 +44,9 @@ forks:
     tracks: branch
     upstream_branch: main
     publish_workflow: rafaelgaspar-ghcr-publish.yaml
+  moontide:
+    repo: rafaelgaspar/moontide
+    upstream: https://github.com/konni-arcadia/moontide.git
+    tag_glob: 'v*.*.*'
+    tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+    publish_workflow: rafaelgaspar-ghcr-publish.yaml

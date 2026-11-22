@@ -1,6 +1,8 @@
 .fork-pack/
-# Cursor project skills must not live at .cursor/ here. GitHub files live at
-# .github/ so forks can uses: the reusable workflow (workflow_call only).
+# Agent project skills must not live at .cursor/ or .claude/ here (both also
+# hold local agent worktrees). GitHub files live at .github/ so forks can uses:
+# the reusable workflow (workflow_call only).
 .cursor/
+.claude/
 *.swp
 .DS_Store
