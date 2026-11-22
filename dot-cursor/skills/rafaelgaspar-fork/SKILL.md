@@ -26,7 +26,7 @@ and tag filters: `members.yaml`.
 | [xpra](https://github.com/rafaelgaspar/xpra) | [Xpra-org/xpra](https://github.com/Xpra-org/xpra) | GitHub release: full `.deb` set + `deb-manifest.txt` via `packaging/debian/build-rafaelgaspar-xpra-for-forky.sh` |
 | [xpra-html5](https://github.com/rafaelgaspar/xpra-html5) | [Xpra-org/xpra-html5](https://github.com/Xpra-org/xpra-html5) | Tarball + `packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`; apt via [fork-pack](https://github.com/rafaelgaspar/fork-pack/blob/main/docs/debian-apt-github-pages.md) |
 | [otbr-insight](https://github.com/rafaelgaspar/otbr-insight) | [sumitbirla/otbr-insight](https://github.com/sumitbirla/otbr-insight) | `ghcr.io/rafaelgaspar/otbr-insight` |
-| [http-add-on](https://github.com/rafaelgaspar/http-add-on) | [kedacore/http-add-on](https://github.com/kedacore/http-add-on) | `ghcr.io/rafaelgaspar/http-add-on-interceptor` |
+| [http-add-on](https://github.com/rafaelgaspar/http-add-on) | [kedacore/http-add-on](https://github.com/kedacore/http-add-on) | `ghcr.io/rafaelgaspar/http-add-on-interceptor`; Helm chart `oci://ghcr.io/rafaelgaspar/http-add-on/charts/keda-add-ons-http` when a child feat vendors `charts/keda-add-ons-http` |
 
 This skill is **fork workflow only**. Deploy config (Helm, secrets, image overlays)
 belongs in the private cluster repo, not in these public forks.
@@ -49,6 +49,13 @@ conflict on workflow YAML.
 `packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`) lives **only**
 on `feat/rafaelgaspar`. Child `feat/*` commits must be product features only —
 no deb/apt scripts or release-workflow build steps on child layers.
+
+**Helm charts:** vendoring or patching `charts/*` (e.g. kedacore
+`keda-add-ons-http` with `fullnameOverride`) is a **child `feat/*`** layer.
+**Publishing** the chart to GHCR belongs on `feat/rafaelgaspar` (workflow calls
+fork-pack `publish-helm-chart-ghcr.sh` when the chart directory exists at the
+shipped `rafaelgaspar` tip). Cluster GitOps (Flux `OCIRepository`, values) stays
+in the private repo.
 
 ## Stacked feat branches (git is the source of truth)
 
