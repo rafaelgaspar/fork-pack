@@ -24,9 +24,7 @@ Change `scripts/rebuild-rafaelgaspar.sh`,
 `.github/workflows/rafaelgaspar-tag-bump.yaml`, and
 `dot-cursor/skills/rafaelgaspar-fork/` **here**, not in the member forks.
 Forks call `rafaelgaspar/fork-pack/.github/workflows/rafaelgaspar-tag-bump.yaml@main`.
-Publish workflows stay per-fork. Optional shared Helm OCI publish:
-`scripts/publish-helm-chart-ghcr.sh` (used by http-add-on when `members.yaml`
-lists `helm_chart_dir`).
+Publish workflows stay per-fork.
 
 Tag-bump installs **mergiraf**, pushes only after the full local stack, and
 skips the daily cron when `origin/rafaelgaspar` already contains the upstream

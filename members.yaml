@@ -44,7 +44,3 @@ forks:
     tracks: branch
     upstream_branch: main
     publish_workflow: rafaelgaspar-ghcr-publish.yaml
-    # Optional Helm chart (child feat/* adds charts/keda-add-ons-http); publish
-    # workflow on feat/rafaelgaspar calls fork-pack publish-helm-chart-ghcr.sh.
-    helm_chart_dir: charts/keda-add-ons-http
-    helm_chart_oci: oci://ghcr.io/rafaelgaspar/http-add-on/charts
