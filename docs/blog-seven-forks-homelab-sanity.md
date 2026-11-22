@@ -1,8 +1,8 @@
-# Six open-source forks for one homelab (and how I stopped dreading upstream releases)
+# Seven open-source forks for one homelab (and how I stopped dreading upstream releases)
 
-I run a homelab that leans on other people’s software—a lot of it. Not “vendor appliance” a lot; “I need a small patch, a fresher runtime, and an image I can actually deploy” a lot. Over time that turned into **six public application forks**: [homepage](https://github.com/rafaelgaspar/homepage), [supergateway](https://github.com/supercorp-ai/supergateway), [xpra](https://github.com/rafaelgaspar/xpra), [xpra-html5](https://github.com/rafaelgaspar/xpra-html5), [otbr-insight](https://github.com/rafaelgaspar/otbr-insight), and [http-add-on](https://github.com/kedacore/http-add-on) (KEDA HTTP interceptor). Each one solves a real problem at home: dashboards, MCP gateways, remote GUI, Thread border routing insight, scale-to-zero HTTP routing.
+I run a homelab that leans on other people’s software—a lot of it. Not “vendor appliance” a lot; “I need a small patch, a fresher runtime, and an image I can actually deploy” a lot. Over time that turned into **seven public application forks**: [homepage](https://github.com/rafaelgaspar/homepage), [supergateway](https://github.com/supercorp-ai/supergateway), [xpra](https://github.com/rafaelgaspar/xpra), [xpra-html5](https://github.com/rafaelgaspar/xpra-html5), [otbr-insight](https://github.com/rafaelgaspar/otbr-insight), [http-add-on](https://github.com/kedacore/http-add-on) (KEDA HTTP interceptor), and [moontide](https://github.com/rafaelgaspar/moontide) ([konni-arcadia/moontide](https://github.com/konni-arcadia/moontide)). Each one solves a real problem at home: dashboards, MCP gateways, remote GUI, Thread border routing insight, scale-to-zero HTTP routing, and live Strudel music via Moontide’s MCP stack.
 
-Maintaining six forks sounds like a part-time job. For a while, it *was*. The thing that saved my sanity wasn’t “try harder at git”—it was **one shared GitOps pack**, **predictable branch geometry**, **boring automation**, and **AI that knows the playbook** instead of improvising six different workflows.
+Maintaining seven forks sounds like a part-time job. For a while, it *was*. The thing that saved my sanity wasn’t “try harder at git”—it was **one shared GitOps pack**, **predictable branch geometry**, **boring automation**, and **AI that knows the playbook** instead of improvising seven different workflows.
 
 This is how that looks in practice.
 
@@ -10,19 +10,19 @@ This is how that looks in practice.
 
 Upstream projects move at their own pace. My cluster moves at mine. I want:
 
-- Container images on **GHCR** I control (homepage, supergateway, otbr-insight, http-add-on).
+- Container images on **GHCR** I control (homepage, supergateway, otbr-insight, http-add-on, moontide).
 - **Full Debian packages** for Xpra server and client HTML5, not a hand-rolled overlay DEB that drifts from upstream.
 - Small product tweaks (metrics, auth wrappers, Node/Go base images) without forking the entire release process every time.
 - A path to **send fixes upstream** on `feat-upstream/*` branches without mixing deploy secrets into public repos.
 
-A long-lived fork is a commitment. Six of them is a commitment with compound interest—unless you treat the *system* as the product, not each repo in isolation.
+A long-lived fork is a commitment. Seven of them is a commitment with compound interest—unless you treat the *system* as the product, not each repo in isolation.
 
 ## The failure mode I was heading toward
 
 Without structure, each fork becomes its own snowflake:
 
-- Rebase six stacks by hand when upstream tags `v2.6.0`.
-- Resolve the same wrapper conflict six different ways.
+- Rebase seven stacks by hand when upstream tags `v2.6.0`.
+- Resolve the same wrapper conflict seven different ways.
 - Copy-paste GitHub Actions YAML until one fork’s `github.sha` semantics bites you (rebuild 4.2.1, publish `v4.2.0-rafaelgaspar.1`—yes, that happened).
 - Let Cursor “help” without guardrails and watch it commit to `main`, squash-merge on `rafaelgaspar`, or duplicate scripts across repos.
 
@@ -72,7 +72,7 @@ Not every upstream cuts semver tags on my schedule. In `members.yaml`:
 - **`tracks: tag`** (default)—daily bump onto the latest release tag matching e.g. `^v[0-9]+\.[0-9]+\.[0-9]+$`.
 - **`tracks: branch`**—track `master` or `main`; integration releases look like `v{tree-version}-{shortsha}-rafaelgaspar.N`.
 
-Xpra server, xpra-html5, and http-add-on use branch tracking so I’m not waiting for a tag to pick up merged fixes. Homepage-style projects stay on release tags. Same script, different policy—configured in data, not copy-paste.
+Xpra server, xpra-html5, and http-add-on use branch tracking so I’m not waiting for a tag to pick up merged fixes. Homepage-style projects (including **moontide**) stay on release tags. Same script, different policy—configured in data, not copy-paste.
 
 ### Scheduled bumps that know when to shut up
 
@@ -100,7 +100,7 @@ So the webhook doesn’t just nag—it **routes**. Fixer is @mentioned with a na
 
 What Fixer actually does mirrors what I’d do by hand, but in a **per-fork agent worktree** on the cluster (`prepare-agent-worktree fixer`) so it’s not fighting my laptop checkout or another agent’s clone. It restacks the linear `feat/*` stack: mergiraf where it helps, union wrapper conflicts per the fork skill, `cherry-pick -n` per layer and **`sign_commit`** (signed stack), then operator-cued `--force-with-lease` on `feat/*` and `rafaelgaspar` only. Fixer does **not** run `rebuild-rafaelgaspar.sh` end-to-end in that pod—the script’s normal path calls `git commit`, which is blocked on those agent pods by design. Restack is the surgical path after a failed CI rebuild.
 
-That split is why Fixer deserves a name in this post: **cron + fork-pack** handles the happy path; **Discord + Fixer** handles the long tail without me becoming the merge driver for six repos.
+That split is why Fixer deserves a name in this post: **cron + fork-pack** handles the happy path; **Discord + Fixer** handles the long tail without me becoming the merge driver for seven repos.
 
 ## Where AI actually helps (vs where it hurts)
 
@@ -118,7 +118,7 @@ That one line costs five seconds and saves twenty minutes of “helpful” wrong
 
 ### Cursor skills as executable policy
 
-Each fork can carry a vendored **`rafaelgaspar-fork`** skill: the six repos, branch rules, tag-bump flow, mergiraf conflict hints, “change fork-pack not five copies,” checklist before push. A separate **`fork-pack`** skill covers editing the pack itself.
+Each fork can carry a vendored **`rafaelgaspar-fork`** skill: all seven repos, branch rules, tag-bump flow, mergiraf conflict hints, “change fork-pack not six copies,” checklist before push. A separate **`fork-pack`** skill covers editing the pack itself.
 
 That’s the difference between “smart autocomplete” and **a junior maintainer who read the README**. Agents stop proposing commits to upstream default branches, parallel feat siblings, or planning docs in public repos.
 
@@ -130,11 +130,11 @@ For Xpra and xpra-html5 I maintain `feat-upstream/*` branches and a living doc o
 
 Cursor and Discord are different UIs for the same idea: **skills are policy, not suggestions**. Tag-bump failures land in a channel Fixer already watches; the webhook text is a work order (`@Fixer` + skill name + guardrails). I’m not pasting stack traces into a blank chat and hoping the model infers `feat/rafaelgaspar` must stay the stack root.
 
-How @mentions, worktrees, signing, and approval gates fit together across agents—not just Fixer—is the subject of the upcoming **Discord Agents** post. The fork fleet was the forcing function: without a named agent and a failure webhook that points at a skill, I’d still be the merge driver for six repos.
+How @mentions, worktrees, signing, and approval gates fit together across agents—not just Fixer—is the subject of the upcoming **Discord Agents** post. The fork fleet was the forcing function: without a named agent and a failure webhook that points at a skill, I’d still be the merge driver for seven repos.
 
-What AI is **bad** at without this scaffolding: choosing correct `workflow_call` checkout refs, remembering that `github.event_name` in a called publish job is still `schedule`, or knowing that six repos share one rebuild script. Skills and one pack fix that.
+What AI is **bad** at without this scaffolding: choosing correct `workflow_call` checkout refs, remembering that `github.event_name` in a called publish job is still `schedule`, or knowing that seven repos share one rebuild script. Skills and one pack fix that.
 
-## What I ship from the six forks
+## What I ship from the seven forks
 
 | Fork | Upstream | What homelab gets |
 | --- | --- | --- |
@@ -144,12 +144,13 @@ What AI is **bad** at without this scaffolding: choosing correct `workflow_call`
 | xpra-html5 | Xpra-org/xpra-html5 | Tarball + apt via GitHub Pages |
 | otbr-insight | sumitbirla/otbr-insight | `ghcr.io/rafaelgaspar/otbr-insight` |
 | http-add-on | kedacore/http-add-on | `ghcr.io/rafaelgaspar/http-add-on-interceptor` |
+| moontide | konni-arcadia/moontide | `ghcr.io/rafaelgaspar/moontide` |
 
 Deploy config (Helm, secrets, overlays) stays in a **private** cluster repo. Public forks stay public-safe.
 
 ## Lessons (the short list)
 
-1. **Treat forks as a fleet**, not six hobbies—one pack, one stack pattern, one rebuild script.
+1. **Treat forks as a fleet**, not seven hobbies—one pack, one stack pattern, one rebuild script.
 2. **One commit per `feat/*` layer**—tag-bump squashes so `git log tag..rafaelgaspar` reads like a changelog.
 3. **Delete upstream CI on the fork**—fight fewer YAML merge conflicts forever.
 4. **Skip work when git says you’re current**—ancestors of `rafaelgaspar`, not vague “same version.”
@@ -160,7 +161,7 @@ Deploy config (Helm, secrets, overlays) stays in a **private** cluster repo. Pub
 
 ## Sanity check
 
-I still have six forks. Upstream still releases. What changed is that **a tag bump is a scheduled, idempotent pipeline** with a known conflict playbook, **every coding agent starts from the same skill** instead of rediscovering branch rules, and when the pipeline breaks, **Fixer** gets a structured ping—not me guessing which fork still has a dirty tree.
+I still have seven forks. Upstream still releases. What changed is that **a tag bump is a scheduled, idempotent pipeline** with a known conflict playbook, **every coding agent starts from the same skill** instead of rediscovering branch rules, and when the pipeline breaks, **Fixer** gets a structured ping—not me guessing which fork still has a dirty tree.
 
 *Next up (separate post): **Discord Agents**—how Fixer fits alongside the rest of the fleet, and why channels beat email for autonomous homelab maintenance.*
 
