@@ -2,7 +2,7 @@
 name: rafaelgaspar-fork
 description: >-
   Work with rafaelgaspar application forks (homepage, supergateway, xpra,
-  xpra-html5, otbr-insight, http-add-on) — stacked feat branches, rafaelgaspar
+  xpra-html5, otbr-insight, http-add-on, moontide) — stacked feat branches, rafaelgaspar
   integration pointer, upstream tag rebuilds. Use when changing fork branches,
   stack order, tag-bump, or fork-pack shared files.
 disable-model-invocation: true
@@ -27,6 +27,7 @@ and tag filters: `members.yaml`.
 | [xpra-html5](https://github.com/rafaelgaspar/xpra-html5) | [Xpra-org/xpra-html5](https://github.com/Xpra-org/xpra-html5) | Tarball + `packaging/debian/build-rafaelgaspar-xpra-html5-for-forky.sh`; apt via [fork-pack](https://github.com/rafaelgaspar/fork-pack/blob/main/docs/debian-apt-github-pages.md) |
 | [otbr-insight](https://github.com/rafaelgaspar/otbr-insight) | [sumitbirla/otbr-insight](https://github.com/sumitbirla/otbr-insight) | `ghcr.io/rafaelgaspar/otbr-insight` |
 | [http-add-on](https://github.com/rafaelgaspar/http-add-on) | [kedacore/http-add-on](https://github.com/kedacore/http-add-on) | `ghcr.io/rafaelgaspar/http-add-on-interceptor` |
+| [moontide](https://github.com/rafaelgaspar/moontide) | [konni-arcadia/moontide](https://github.com/konni-arcadia/moontide) | `ghcr.io/rafaelgaspar/moontide` |
 
 This skill is **fork workflow only**. Deploy config (Helm, secrets, image overlays)
 belongs in the private cluster repo, not in these public forks.
