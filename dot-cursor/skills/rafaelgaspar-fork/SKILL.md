@@ -2,7 +2,7 @@
 name: rafaelgaspar-fork
 description: >-
   Work with rafaelgaspar application forks (homepage, supergateway, xpra,
-  xpra-html5, otbr-insight, http-add-on, moontide) — stacked feat branches, rafaelgaspar
+  xpra-html5, otbr-insight, http-add-on, moontide, envoy) — stacked feat branches, rafaelgaspar
   integration pointer, upstream tag rebuilds. Use when changing fork branches,
   stack order, tag-bump, or fork-pack shared files.
 disable-model-invocation: true
@@ -28,6 +28,7 @@ and tag filters: `members.yaml`.
 | [otbr-insight](https://github.com/rafaelgaspar/otbr-insight) | [sumitbirla/otbr-insight](https://github.com/sumitbirla/otbr-insight) | `ghcr.io/rafaelgaspar/otbr-insight` |
 | [http-add-on](https://github.com/rafaelgaspar/http-add-on) | [kedacore/http-add-on](https://github.com/kedacore/http-add-on) | `ghcr.io/rafaelgaspar/http-add-on-interceptor` |
 | [moontide](https://github.com/rafaelgaspar/moontide) | [konni-arcadia/moontide](https://github.com/konni-arcadia/moontide) | `ghcr.io/rafaelgaspar/moontide` |
+| [envoy](https://github.com/rafaelgaspar/envoy) | [envoyproxy/envoy](https://github.com/envoyproxy/envoy) | `ghcr.io/rafaelgaspar/envoy` (distroless) |
 
 This skill is **fork workflow only**. Deploy config (Helm, secrets, image overlays)
 belongs in the private cluster repo, not in these public forks.
@@ -153,7 +154,7 @@ FORK_PACK_SCRIPTS=~/Projects/ThirdParty/fork-pack/scripts \
   ~/Projects/ThirdParty/fork-pack/scripts/rebuild-rafaelgaspar.sh --squash --push vX.Y.Z
 ```
 
-Change rebuild/tag-bump **in fork-pack**, not by forking copies in the five
+Change rebuild/tag-bump **in fork-pack**, not by forking copies in the member
 repos.
 
 Per-fork publish workflows must checkout `${{ inputs.ref || github.sha }}`
