@@ -7,7 +7,8 @@ set -euo pipefail
 dest=${1:?usage: install.sh /path/to/fork}
 pack=$(cd "$(dirname "$0")/.." && pwd)
 
-[[ -d $dest/.git ]] || { echo "error: ${dest} is not a git checkout" >&2; exit 1; }
+git -C "$dest" rev-parse --is-inside-work-tree >/dev/null 2>&1 \
+  || { echo "error: ${dest} is not a git checkout" >&2; exit 1; }
 
 fork_key=""
 origin_url=$(git -C "$dest" remote get-url origin 2>/dev/null || true)

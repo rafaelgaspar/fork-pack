@@ -7,7 +7,8 @@ Shared GitOps files for the public `rafaelgaspar/*` application forks
 [xpra-html5](https://github.com/rafaelgaspar/xpra-html5),
 [otbr-insight](https://github.com/rafaelgaspar/otbr-insight),
 [http-add-on](https://github.com/rafaelgaspar/http-add-on),
-[moontide](https://github.com/rafaelgaspar/moontide)).
+[moontide](https://github.com/rafaelgaspar/moontide),
+[envoy](https://github.com/rafaelgaspar/envoy)).
 
 This repo is the source of truth for stack rebuild and tag-bump. Per-fork
 publish workflows (GHCR vs full `.deb` set vs HTML5 tarball) stay in the forks.

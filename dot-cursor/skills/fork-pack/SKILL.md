@@ -2,7 +2,7 @@
 name: fork-pack
 description: >-
   Shared rebuild/tag-bump files for rafaelgaspar application forks (homepage,
-  supergateway, xpra, xpra-html5, otbr-insight, http-add-on, moontide). Use when changing
+  supergateway, xpra, xpra-html5, otbr-insight, http-add-on, moontide, envoy). Use when changing
   stack rebuild, tag-bump, mergiraf, Discord notify, or fork-pack install.
 disable-model-invocation: true
 ---

@@ -50,3 +50,9 @@ forks:
     tag_glob: 'v*.*.*'
     tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
     publish_workflow: rafaelgaspar-ghcr-publish.yaml
+  envoy:
+    repo: rafaelgaspar/envoy
+    upstream: https://github.com/envoyproxy/envoy.git
+    tag_glob: 'v*.*.*'
+    tag_filter: '^v[0-9]+\.[0-9]+\.[0-9]+$'
+    publish_workflow: rafaelgaspar-ghcr-publish.yaml
